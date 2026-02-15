@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedDigest - Free Med-Bio Insights</title>
+  <title>PaperMind - Free Med-Bio Insights</title>
   <meta name="description" content="Free medical paper insight service for healthcare professionals. Powered by Longevity Lab.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -54,7 +54,7 @@
             <i class="fas fa-book-medical text-white text-lg"></i>
           </div>
           <div>
-            <h1 class="text-xl font-serif font-semibold text-navy-800">MedDigest</h1>
+            <h1 class="text-xl font-serif font-semibold text-navy-800">PaperMind</h1>
             <p class="text-xs text-sage-600 font-medium" data-i18n="subtitle">무료 Med-Bio 인사이트</p>
           </div>
         </div>
@@ -217,7 +217,7 @@
             <div class="w-8 h-8 bg-gradient-to-br from-sage-500 to-primary-600 rounded-lg flex items-center justify-center">
               <i class="fas fa-book-medical text-white text-sm"></i>
             </div>
-            <span class="font-serif font-semibold">MedDigest</span>
+            <span class="font-serif font-semibold">PaperMind</span>
           </div>
           <p class="text-white/50 text-sm" data-i18n="footerDesc">의료 전문가를 위한 Med-Bio 논문 인사이트 서비스</p>
           <p class="text-white/40 text-xs mt-2">
@@ -242,7 +242,7 @@
         </div>
       </div>
       <div class="border-t border-white/10 pt-6 text-center space-y-2">
-        <p class="text-white/40 text-sm">© 2026 MedDigest. Powered by WebGPU + Vercel</p>
+        <p class="text-white/40 text-sm">© 2026 PaperMind. Powered by WebGPU + Vercel</p>
         <p class="text-white/50 text-sm font-medium">Brown Biotech Inc. Contact: brownbio.ocm@gmail.com</p>
       </div>
     </div>
@@ -375,7 +375,7 @@
       }
     };
 
-    let currentLang = localStorage.getItem('meddigest-lang') || 'ko';
+    let currentLang = localStorage.getItem('papermind-lang') || 'ko';
     let currentUser = null;
 
     function t(key) {
@@ -394,7 +394,7 @@
 
     function toggleLang() {
       currentLang = currentLang === 'ko' ? 'en' : 'ko';
-      localStorage.setItem('meddigest-lang', currentLang);
+      localStorage.setItem('papermind-lang', currentLang);
       translatePage();
       loadArticles(currentTopicFilter);
     }
@@ -453,7 +453,7 @@
         const data = await res.json();
         if (data.success) {
           currentUser = data.user;
-          localStorage.setItem('meddigest-user', JSON.stringify(data.user));
+          localStorage.setItem('papermind-user', JSON.stringify(data.user));
           closeAuthModal();
           updateNavForUser(data.user);
           loadArticles(currentTopicFilter);
@@ -482,7 +482,7 @@
         const data = await res.json();
         if (data.success) {
           currentUser = data.user;
-          localStorage.setItem('meddigest-user', JSON.stringify(data.user));
+          localStorage.setItem('papermind-user', JSON.stringify(data.user));
           closeAuthModal();
           updateNavForUser(data.user);
           loadArticles(currentTopicFilter);
@@ -511,7 +511,7 @@
     async function handleLogout() {
       try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch(e) {}
       currentUser = null;
-      localStorage.removeItem('meddigest-user');
+      localStorage.removeItem('papermind-user');
       location.reload();
     }
 
@@ -683,8 +683,8 @@
         `;
 
         // Initialize AI Chat only for logged-in users
-        if (currentUser && window.MedDigestChat) {
-          window.medChat = new MedDigestChat('ai-chat-container');
+        if (currentUser && window.PaperMindChat) {
+          window.medChat = new PaperMindChat('ai-chat-container');
           window.medChat.render(article);
         }
       } catch (e) { content.innerHTML = `<div class="p-8"><p class="text-red-500">${t('errorLoad')}</p></div>`; }
@@ -702,7 +702,7 @@
     // Check login status
     async function checkAuth() {
       // Check localStorage first for quick UI
-      const stored = localStorage.getItem('meddigest-user');
+      const stored = localStorage.getItem('papermind-user');
       if (stored) {
         try {
           currentUser = JSON.parse(stored);
@@ -716,7 +716,7 @@
           const data = await res.json();
           if (data.user) {
             currentUser = data.user;
-            localStorage.setItem('meddigest-user', JSON.stringify(data.user));
+            localStorage.setItem('papermind-user', JSON.stringify(data.user));
             updateNavForUser(data.user);
           } else if (!stored) {
             currentUser = null;

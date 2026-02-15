@@ -490,7 +490,7 @@ module.exports = async function handler(req, res) {
     // ── /api/health ──
     if (path === '/api/health') {
       return json(res, {
-        status: 'ok', app: 'MedDigest', platform: 'Vercel',
+        status: 'ok', app: 'PaperMind', platform: 'Vercel',
         features: ['WebGPU AI Chat', 'Longevity Lab Articles', 'Bilingual EN/KO'],
         timestamp: new Date().toISOString()
       });
