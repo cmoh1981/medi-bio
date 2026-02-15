@@ -9,6 +9,7 @@ type Bindings = {
   APP_ENV: string
   CRON_SECRET?: string
   ADSENSE_CLIENT_ID?: string
+  RESEND_API_KEY?: string
 }
 
 // Cloudflare Workers types
@@ -47,6 +48,94 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
   const inputHash = await hashPassword(password)
   return inputHash === hash
+}
+
+// ===== Resend Email Helper =====
+async function sendEmail(apiKey: string, options: {
+  to: string | string[]
+  subject: string
+  html: string
+  from?: string
+}) {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: options.from || 'MedDigest <newsletter@meddigest.io>',
+      to: Array.isArray(options.to) ? options.to : [options.to],
+      subject: options.subject,
+      html: options.html
+    })
+  })
+  
+  return response.json()
+}
+
+// Newsletter Email Template
+function generateNewsletterHTML(articles: any[], unsubscribeUrl: string) {
+  const articleCards = articles.map(a => `
+    <div style="background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #e8d5c8;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+        <span style="background: #e3e7e3; color: #4a5c4b; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">${a.topic}</span>
+        <span style="color: #9a9a9a; font-size: 12px;">${a.published_at}</span>
+      </div>
+      <p style="color: #7d5236; font-size: 12px; margin: 0 0 8px 0; font-weight: 500;">${a.journal}</p>
+      <h3 style="color: #2c3e50; font-size: 18px; margin: 0 0 16px 0; font-family: 'Georgia', serif; line-height: 1.4;">${a.title}</h3>
+      <div style="margin-bottom: 16px;">
+        ${a.key_messages.slice(0, 2).map((msg: string, i: number) => `
+          <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+            <span style="background: linear-gradient(135deg, #5f7360, #7d917d); color: white; width: 20px; height: 20px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-right: 10px; flex-shrink: 0;">${i + 1}</span>
+            <span style="color: #4a5c4b; font-size: 14px; line-height: 1.5;">${msg}</span>
+          </div>
+        `).join('')}
+      </div>
+      <a href="https://meddigest.io/article/${a.slug}" style="color: #7d5236; font-size: 14px; font-weight: 500; text-decoration: none;">자세히 보기 →</a>
+    </div>
+  `).join('')
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedDigest Daily</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #fcf9f4; font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="display: inline-block; background: linear-gradient(135deg, #5f7360, #7d5236); width: 48px; height: 48px; border-radius: 12px; margin-bottom: 16px;"></div>
+      <h1 style="color: #2c3e50; font-size: 24px; margin: 0; font-family: 'Georgia', serif;">MedDigest</h1>
+      <p style="color: #5f7360; font-size: 14px; margin: 8px 0 0 0;">Daily Med-Bio Insight</p>
+    </div>
+    
+    <!-- Greeting -->
+    <div style="background: linear-gradient(135deg, #5f7360 0%, #7d5236 50%, #9a6642 100%); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 24px;">
+      <h2 style="color: white; font-size: 20px; margin: 0 0 8px 0; font-family: 'Georgia', serif;">오늘의 논문 인사이트</h2>
+      <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin: 0;">${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p>
+    </div>
+    
+    <!-- Articles -->
+    ${articleCards}
+    
+    <!-- CTA -->
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="https://meddigest.io" style="display: inline-block; background: linear-gradient(135deg, #7d5236, #9a6642); color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 500; font-size: 14px;">더 많은 논문 보기</a>
+    </div>
+    
+    <!-- Footer -->
+    <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e8d5c8;">
+      <p style="color: #9a9a9a; font-size: 12px; margin: 0 0 8px 0;">© 2026 MedDigest. 의료 전문가를 위한 무료 논문 인사이트.</p>
+      <a href="${unsubscribeUrl}" style="color: #9a9a9a; font-size: 12px; text-decoration: underline;">구독 취소</a>
+    </div>
+  </div>
+</body>
+</html>
+  `
 }
 
 // Auth Middleware
@@ -388,6 +477,221 @@ app.delete('/api/bookmarks/:articleId', async (c) => {
   }
 })
 
+// ===== Newsletter API =====
+
+// Subscribe to newsletter
+app.post('/api/newsletter/subscribe', async (c) => {
+  try {
+    const { email, name } = await c.req.json()
+    
+    if (!email || !email.includes('@')) {
+      return c.json({ error: '올바른 이메일을 입력해주세요.' }, 400)
+    }
+    
+    // Check if already subscribed
+    const existing = await c.env.DB.prepare(
+      'SELECT id, status FROM subscribers WHERE email = ?'
+    ).bind(email.toLowerCase()).first() as { id: number, status: string } | null
+    
+    if (existing) {
+      if (existing.status === 'active') {
+        return c.json({ error: '이미 구독 중인 이메일입니다.' }, 400)
+      }
+      // Reactivate unsubscribed user
+      await c.env.DB.prepare(
+        'UPDATE subscribers SET status = ?, unsubscribed_at = NULL, subscribed_at = CURRENT_TIMESTAMP WHERE id = ?'
+      ).bind('active', existing.id).run()
+    } else {
+      // New subscriber
+      await c.env.DB.prepare(
+        'INSERT INTO subscribers (email, name, status) VALUES (?, ?, ?)'
+      ).bind(email.toLowerCase(), name || null, 'active').run()
+    }
+    
+    // Send welcome email if Resend API key is configured
+    if (c.env.RESEND_API_KEY) {
+      try {
+        await sendEmail(c.env.RESEND_API_KEY, {
+          to: email,
+          subject: '🎉 MedDigest 뉴스레터 구독을 환영합니다!',
+          html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 40px 20px; background-color: #fcf9f4; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+  <div style="max-width: 500px; margin: 0 auto; text-align: center;">
+    <div style="background: linear-gradient(135deg, #5f7360, #7d5236); width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 24px;"></div>
+    <h1 style="color: #2c3e50; font-size: 24px; margin: 0 0 16px;">환영합니다!</h1>
+    <p style="color: #5f7360; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+      MedDigest 뉴스레터 구독이 완료되었습니다.<br>
+      매일 아침, 엄선된 Med-Bio 논문 인사이트를 받아보세요.
+    </p>
+    <a href="https://meddigest.io" style="display: inline-block; background: linear-gradient(135deg, #7d5236, #9a6642); color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 500;">오늘의 논문 보기</a>
+    <p style="color: #9a9a9a; font-size: 12px; margin: 32px 0 0;">© 2026 MedDigest</p>
+  </div>
+</body>
+</html>
+          `
+        })
+      } catch (e) {
+        console.error('Welcome email failed:', e)
+      }
+    }
+    
+    return c.json({ success: true, message: '뉴스레터 구독이 완료되었습니다!' })
+  } catch (e) {
+    console.error('Subscribe error:', e)
+    return c.json({ error: '구독 처리 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// Unsubscribe from newsletter
+app.get('/api/newsletter/unsubscribe', async (c) => {
+  const email = c.req.query('email')
+  const token = c.req.query('token')
+  
+  if (!email) {
+    return c.html(`
+      <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+        <h2>잘못된 요청입니다.</h2>
+      </body></html>
+    `)
+  }
+  
+  try {
+    await c.env.DB.prepare(
+      'UPDATE subscribers SET status = ?, unsubscribed_at = CURRENT_TIMESTAMP WHERE email = ?'
+    ).bind('unsubscribed', email.toLowerCase()).run()
+    
+    return c.html(`
+      <html><body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fcf9f4;">
+        <div style="max-width: 400px; margin: 0 auto;">
+          <h2 style="color: #2c3e50;">구독이 취소되었습니다</h2>
+          <p style="color: #5f7360;">MedDigest 뉴스레터 구독이 취소되었습니다.<br>언제든 다시 구독할 수 있습니다.</p>
+          <a href="https://meddigest.io" style="color: #7d5236;">홈으로 돌아가기</a>
+        </div>
+      </body></html>
+    `)
+  } catch (e) {
+    return c.html(`
+      <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+        <h2>오류가 발생했습니다.</h2>
+      </body></html>
+    `)
+  }
+})
+
+// Get subscriber count (for admin/stats)
+app.get('/api/newsletter/stats', async (c) => {
+  try {
+    const stats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN status = 'unsubscribed' THEN 1 ELSE 0 END) as unsubscribed
+      FROM subscribers
+    `).first()
+    
+    return c.json({ stats })
+  } catch (e) {
+    return c.json({ stats: { total: 0, active: 0, unsubscribed: 0 } })
+  }
+})
+
+// Send newsletter (triggered by cron or manual)
+app.post('/api/newsletter/send', async (c) => {
+  const auth = c.req.header('Authorization')
+  const secret = c.env.CRON_SECRET || 'dev-secret'
+  
+  if (auth !== `Bearer ${secret}`) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  
+  if (!c.env.RESEND_API_KEY) {
+    return c.json({ error: 'Resend API key not configured' }, 500)
+  }
+  
+  try {
+    // Get today's articles
+    const articles = await c.env.DB.prepare(`
+      SELECT * FROM articles 
+      WHERE published_at >= date('now', '-1 day')
+      ORDER BY published_at DESC
+      LIMIT 5
+    `).all()
+    
+    if (articles.results.length === 0) {
+      return c.json({ message: 'No new articles to send', sent: 0 })
+    }
+    
+    // Parse key_messages
+    const parsedArticles = articles.results.map((a: any) => ({
+      ...a,
+      key_messages: JSON.parse(a.key_messages)
+    }))
+    
+    // Get active subscribers
+    const subscribers = await c.env.DB.prepare(
+      'SELECT id, email FROM subscribers WHERE status = ?'
+    ).bind('active').all()
+    
+    if (subscribers.results.length === 0) {
+      return c.json({ message: 'No active subscribers', sent: 0 })
+    }
+    
+    let successful = 0
+    let failed = 0
+    
+    // Send to each subscriber (in batches for Resend)
+    for (const sub of subscribers.results as { id: number, email: string }[]) {
+      const unsubscribeUrl = `https://meddigest.io/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`
+      const html = generateNewsletterHTML(parsedArticles, unsubscribeUrl)
+      
+      try {
+        await sendEmail(c.env.RESEND_API_KEY, {
+          to: sub.email,
+          subject: `📚 MedDigest Daily - ${new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`,
+          html
+        })
+        successful++
+        
+        // Update subscriber stats
+        await c.env.DB.prepare(
+          'UPDATE subscribers SET last_email_sent_at = CURRENT_TIMESTAMP, emails_sent = emails_sent + 1 WHERE id = ?'
+        ).bind(sub.id).run()
+      } catch (e) {
+        failed++
+        console.error(`Failed to send to ${sub.email}:`, e)
+      }
+      
+      // Rate limiting (Resend free tier: 100 emails/day)
+      await new Promise(r => setTimeout(r, 100))
+    }
+    
+    // Log the send
+    await c.env.DB.prepare(`
+      INSERT INTO newsletter_logs (subject, total_recipients, successful, failed, article_ids)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      `Daily - ${new Date().toISOString().split('T')[0]}`,
+      subscribers.results.length,
+      successful,
+      failed,
+      JSON.stringify(parsedArticles.map((a: any) => a.id))
+    ).run()
+    
+    return c.json({ 
+      message: 'Newsletter sent',
+      total: subscribers.results.length,
+      successful,
+      failed
+    })
+  } catch (e) {
+    console.error('Newsletter send error:', e)
+    return c.json({ error: 'Failed to send newsletter' }, 500)
+  }
+})
+
 // ===== Main Page =====
 
 app.get('/', (c) => {
@@ -596,6 +900,7 @@ app.get('/', (c) => {
   </main>
 
   <!-- Newsletter CTA -->
+  <!-- Newsletter CTA -->
   <section class="relative overflow-hidden py-16 md:py-20">
     <div class="absolute inset-0 warm-gradient opacity-95"></div>
     <div class="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -605,18 +910,30 @@ app.get('/', (c) => {
         <i class="fas fa-envelope mr-2"></i>뉴스레터 구독
       </div>
       <h3 class="font-serif text-3xl md:text-4xl font-semibold text-white mb-4">매일 아침, 논문 인사이트를 받아보세요</h3>
-      <p class="text-white/80 text-lg mb-8">무료 회원가입하고 최신 Med-Bio 논문 요약을 이메일로 받아보세요.</p>
+      <p class="text-white/80 text-lg mb-8">이메일을 입력하고 최신 Med-Bio 논문 요약을 무료로 받아보세요.</p>
       
-      ${user ? `
-        <div class="text-white/90">
-          <i class="fas fa-check-circle text-2xl mb-2"></i>
-          <p>이미 구독 중이십니다!</p>
+      <div id="newsletter-form-container">
+        <form onsubmit="handleNewsletterSubscribe(event)" class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+          <input type="email" id="newsletter-email" required 
+            class="flex-1 px-5 py-4 rounded-xl text-navy-800 placeholder-navy-400 focus:outline-none focus:ring-2 focus:ring-white/50" 
+            placeholder="your@email.com">
+          <button type="submit" class="px-8 py-4 bg-white text-primary-700 hover:bg-cream-100 rounded-xl font-semibold shadow-lg transition whitespace-nowrap">
+            <i class="fas fa-paper-plane mr-2"></i>구독하기
+          </button>
+        </form>
+        <p class="text-white/60 text-sm mt-4">
+          <i class="fas fa-shield-alt mr-1"></i>스팸 없음 · 언제든 구독 취소 가능
+        </p>
+      </div>
+      <div id="newsletter-success" class="hidden">
+        <div class="inline-flex items-center px-6 py-4 bg-white/20 rounded-xl">
+          <i class="fas fa-check-circle text-2xl text-green-300 mr-3"></i>
+          <div class="text-left">
+            <p class="text-white font-semibold">구독 완료!</p>
+            <p class="text-white/80 text-sm">매일 아침 논문 인사이트가 도착합니다.</p>
+          </div>
         </div>
-      ` : `
-        <button onclick="openAuthModal('signup')" class="px-8 py-4 bg-white text-primary-700 hover:bg-cream-100 rounded-xl font-semibold shadow-lg transition">
-          <i class="fas fa-user-plus mr-2"></i>무료 회원가입
-        </button>
-      `}
+      </div>
     </div>
   </section>
 
@@ -808,6 +1125,32 @@ app.get('/', (c) => {
     async function logout() {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.reload();
+    }
+    
+    // Newsletter subscription
+    async function handleNewsletterSubscribe(e) {
+      e.preventDefault();
+      const email = document.getElementById('newsletter-email').value;
+      const formContainer = document.getElementById('newsletter-form-container');
+      const successDiv = document.getElementById('newsletter-success');
+      
+      try {
+        const res = await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          formContainer.classList.add('hidden');
+          successDiv.classList.remove('hidden');
+        } else {
+          alert(data.error || '구독 중 오류가 발생했습니다.');
+        }
+      } catch (e) {
+        alert('구독 중 오류가 발생했습니다.');
+      }
     }
 
     // Load articles
@@ -1344,6 +1687,7 @@ async function handleCronJob(env: Bindings) {
   console.log('MedDigest Cron Started:', new Date().toISOString());
   let saved = 0;
   
+  // 1. Fetch and save new articles from PubMed
   for (const [, topic] of Object.entries(CRON_TOPICS)) {
     const term = topic.searchTerms[Math.floor(Math.random() * topic.searchTerms.length)];
     const articles = await searchPubMedForCron(term);
@@ -1384,8 +1728,75 @@ async function handleCronJob(env: Bindings) {
     }
   }
   
-  console.log(`Cron Completed: ${saved} articles saved`);
-  return { saved };
+  console.log(`Articles saved: ${saved}`);
+  
+  // 2. Send daily newsletter if Resend API key is configured
+  let newsletterSent = 0;
+  if (env.RESEND_API_KEY) {
+    try {
+      // Get today's articles for newsletter
+      const todayArticles = await env.DB.prepare(`
+        SELECT * FROM articles 
+        WHERE published_at >= date('now', '-1 day')
+        ORDER BY published_at DESC
+        LIMIT 5
+      `).all();
+      
+      if (todayArticles.results.length > 0) {
+        const parsedArticles = todayArticles.results.map((a: any) => ({
+          ...a,
+          key_messages: JSON.parse(a.key_messages)
+        }));
+        
+        // Get active subscribers
+        const subscribers = await env.DB.prepare(
+          'SELECT id, email FROM subscribers WHERE status = ?'
+        ).bind('active').all();
+        
+        console.log(`Sending newsletter to ${subscribers.results.length} subscribers...`);
+        
+        for (const sub of subscribers.results as { id: number, email: string }[]) {
+          const unsubscribeUrl = `https://meddigest.io/api/newsletter/unsubscribe?email=${encodeURIComponent(sub.email)}`;
+          const html = generateNewsletterHTML(parsedArticles, unsubscribeUrl);
+          
+          try {
+            await sendEmail(env.RESEND_API_KEY, {
+              to: sub.email,
+              subject: `📚 MedDigest Daily - ${new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`,
+              html
+            });
+            newsletterSent++;
+            
+            await env.DB.prepare(
+              'UPDATE subscribers SET last_email_sent_at = CURRENT_TIMESTAMP, emails_sent = emails_sent + 1 WHERE id = ?'
+            ).bind(sub.id).run();
+          } catch (e) {
+            console.error(`Newsletter failed for ${sub.email}:`, e);
+          }
+          
+          // Rate limiting
+          await new Promise(r => setTimeout(r, 100));
+        }
+        
+        // Log newsletter send
+        await env.DB.prepare(`
+          INSERT INTO newsletter_logs (subject, total_recipients, successful, failed, article_ids)
+          VALUES (?, ?, ?, ?, ?)
+        `).bind(
+          `Daily - ${new Date().toISOString().split('T')[0]}`,
+          subscribers.results.length,
+          newsletterSent,
+          subscribers.results.length - newsletterSent,
+          JSON.stringify(parsedArticles.map((a: any) => a.id))
+        ).run();
+      }
+    } catch (e) {
+      console.error('Newsletter send error:', e);
+    }
+  }
+  
+  console.log(`Cron Completed: ${saved} articles, ${newsletterSent} emails sent`);
+  return { saved, newsletterSent };
 }
 
 app.post('/api/cron/trigger', async (c) => {
