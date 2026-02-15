@@ -706,11 +706,12 @@ app.get('/', (c) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MedDigest - 무료 의학 논문 인사이트</title>
   <meta name="description" content="의료 전문가를 위한 무료 Med-Bio 논문 요약 서비스. 매일 업데이트되는 심혈관, 내분비, 노화, 당뇨 분야 최신 연구.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>
+  <!-- Google AdSense - only load if real ID configured -->
+  ${adsenseId !== 'ca-pub-XXXXXXXXXX' ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>` : '<!-- AdSense: Configure ADSENSE_CLIENT_ID to enable ads -->'}
   
   <!-- WebGPU LLM -->
   <script type="module" src="/static/webgpu-llm.js"></script>
@@ -830,6 +831,7 @@ app.get('/', (c) => {
   </section>
 
   <!-- Ad Banner (Top) -->
+  ${adsenseId !== 'ca-pub-XXXXXXXXXX' ? `
   <div class="max-w-6xl mx-auto px-6 py-4">
     <div class="ad-container">
       <ins class="adsbygoogle"
@@ -840,7 +842,7 @@ app.get('/', (c) => {
            data-full-width-responsive="true"></ins>
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
-  </div>
+  </div>` : ''}
 
   <!-- Topic Filter -->
   <section class="bg-white border-y border-primary-100">
@@ -886,6 +888,7 @@ app.get('/', (c) => {
     </div>
     
     <!-- Ad Banner (In-feed) -->
+    ${adsenseId !== 'ca-pub-XXXXXXXXXX' ? `
     <div class="my-8">
       <div class="ad-container">
         <ins class="adsbygoogle"
@@ -896,7 +899,7 @@ app.get('/', (c) => {
              data-ad-layout-key="-6t+ed+2i-1n-4w"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       </div>
-    </div>
+    </div>` : ''}
   </main>
 
   <!-- Newsletter CTA -->
@@ -941,6 +944,7 @@ app.get('/', (c) => {
   <footer class="bg-navy-800 text-white py-12">
     <div class="max-w-6xl mx-auto px-6">
       <!-- Footer Ad -->
+      ${adsenseId !== 'ca-pub-XXXXXXXXXX' ? `
       <div class="mb-8">
         <div class="ad-container" style="background: rgba(255,255,255,0.05);">
           <ins class="adsbygoogle"
@@ -951,7 +955,7 @@ app.get('/', (c) => {
                data-full-width-responsive="true"></ins>
           <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
         </div>
-      </div>
+      </div>` : ''}
       
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="flex items-center space-x-3 mb-6 md:mb-0">
@@ -1281,17 +1285,7 @@ app.get('/', (c) => {
               </div>
             </div>
             
-            <!-- In-Article Ad -->
-            <div class="p-4 bg-cream-200">
-              <div class="ad-container">
-                <ins class="adsbygoogle"
-                     style="display:block"
-                     data-ad-client="${adsenseId}"
-                     data-ad-slot="5566778899"
-                     data-ad-format="fluid"></ins>
-                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-              </div>
-            </div>
+            <!-- In-Article Ad (only shown when AdSense is configured) -->
             
             <div class="p-8">
               <!-- Key Messages -->
