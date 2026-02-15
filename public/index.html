@@ -6,7 +6,6 @@
   <title>MedDigest - Free Med-Bio Insights</title>
   <meta name="description" content="Free medical paper insight service for healthcare professionals. Powered by Longevity Lab.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8536708511920903" crossorigin="anonymous"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -731,34 +730,6 @@
     loadArticles();
     checkAuth();
 
-    // ── Ad Popup ──
-    function showAdPopup() {
-      if (sessionStorage.getItem('adClosed')) return;
-      const overlay = document.getElementById('ad-popup-overlay');
-      if (overlay) overlay.style.display = 'flex';
-      try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-    }
-    function closeAdPopup() {
-      const overlay = document.getElementById('ad-popup-overlay');
-      if (overlay) overlay.style.display = 'none';
-      sessionStorage.setItem('adClosed', '1');
-    }
-    // Show popup ad 5 seconds after page load (once per session)
-    setTimeout(showAdPopup, 5000);
   </script>
-
-  <!-- Ad Popup Overlay -->
-  <div id="ad-popup-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
-    <div style="position:relative; background:#fff; border-radius:16px; padding:24px; max-width:400px; width:90%; box-shadow:0 25px 50px rgba(0,0,0,0.3);">
-      <button onclick="closeAdPopup()" style="position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; cursor:pointer; color:#666; line-height:1;" aria-label="Close">&times;</button>
-      <p style="text-align:center; font-size:12px; color:#999; margin-bottom:12px;">Sponsored</p>
-      <ins class="adsbygoogle"
-        style="display:block;"
-        data-ad-client="ca-pub-8536708511920903"
-        data-ad-slot="auto"
-        data-ad-format="auto"
-        data-full-width-responsive="true"></ins>
-    </div>
-  </div>
 </body>
 </html>
