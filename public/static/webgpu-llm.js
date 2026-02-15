@@ -178,19 +178,29 @@ class MedDigestLLM {
     } catch (error) {
       this.isLoading = false;
       this.isReady = false;
-      console.error('Model initialization failed:', error);
-      
-      if (this.callbacks.onError) {
-        this.callbacks.onError(error);
-      }
-      
+
+      // Ensure error is always an Error object with a message
+      const err = error instanceof Error ? error : new Error(String(error || 'Unknown error'));
+      console.error('Model initialization failed:', err);
+
       // Fallback 시도
       if (preferredModel === 'primary') {
         console.log('Trying fallback model...');
-        return this.initialize('fallback');
+        try {
+          return await this.initialize('fallback');
+        } catch (fallbackError) {
+          const fbErr = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError || 'Unknown error'));
+          if (this.callbacks.onError) {
+            this.callbacks.onError(fbErr);
+          }
+          throw fbErr;
+        }
       }
-      
-      throw error;
+
+      if (this.callbacks.onError) {
+        this.callbacks.onError(err);
+      }
+      throw err;
     }
   }
 

@@ -182,7 +182,7 @@ class MedDigestChat {
     
     const progressText = document.getElementById('progress-text');
     if (progressText) {
-      progressText.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>모델 로딩 실패: ${error.message}</span>`;
+      progressText.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>모델 로딩 실패: ${error && error.message ? error.message : String(error || 'Unknown error')}</span>`;
     }
     
     // 재시도 버튼 추가
