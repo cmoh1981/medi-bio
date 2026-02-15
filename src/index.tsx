@@ -5,11 +5,10 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 // Types
 type Bindings = {
   DB: D1Database
-  KAKAO_CLIENT_ID: string
-  KAKAO_CLIENT_SECRET: string
   APP_NAME: string
   APP_ENV: string
   CRON_SECRET?: string
+  ADSENSE_CLIENT_ID?: string
 }
 
 // Cloudflare Workers types
@@ -26,9 +25,8 @@ interface ExecutionContext {
 type Variables = {
   user: {
     id: number
-    kakao_id: string
+    email: string
     nickname: string
-    subscription_tier: string
   } | null
 }
 
@@ -37,6 +35,20 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 // CORS
 app.use('/api/*', cors())
 
+// Simple password hashing using Web Crypto API (for Cloudflare Workers)
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password + 'meddigest-salt-2026')
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const inputHash = await hashPassword(password)
+  return inputHash === hash
+}
+
 // Auth Middleware
 app.use('*', async (c, next) => {
   const sessionToken = getCookie(c, 'session_token')
@@ -44,7 +56,7 @@ app.use('*', async (c, next) => {
   if (sessionToken && c.env.DB) {
     try {
       const session = await c.env.DB.prepare(`
-        SELECT u.id, u.kakao_id, u.nickname, u.subscription_tier
+        SELECT u.id, u.email, u.nickname
         FROM sessions s
         JOIN users u ON s.user_id = u.id
         WHERE s.session_token = ? AND s.expires_at > datetime('now')
@@ -78,94 +90,51 @@ app.get('/api/me', (c) => {
   return c.json({ authenticated: true, user })
 })
 
-// ===== Kakao OAuth =====
+// ===== Email Auth =====
 
-// Start Kakao login
-app.get('/api/auth/kakao', (c) => {
-  const clientId = c.env.KAKAO_CLIENT_ID || 'YOUR_KAKAO_CLIENT_ID'
-  const redirectUri = `${new URL(c.req.url).origin}/api/auth/kakao/callback`
-  
-  const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize')
-  kakaoAuthUrl.searchParams.set('client_id', clientId)
-  kakaoAuthUrl.searchParams.set('redirect_uri', redirectUri)
-  kakaoAuthUrl.searchParams.set('response_type', 'code')
-  
-  return c.redirect(kakaoAuthUrl.toString())
-})
-
-// Kakao callback
-app.get('/api/auth/kakao/callback', async (c) => {
-  const code = c.req.query('code')
-  const error = c.req.query('error')
-  
-  if (error || !code) {
-    return c.redirect('/?error=kakao_auth_failed')
-  }
-  
-  const clientId = c.env.KAKAO_CLIENT_ID || 'YOUR_KAKAO_CLIENT_ID'
-  const clientSecret = c.env.KAKAO_CLIENT_SECRET || ''
-  const redirectUri = `${new URL(c.req.url).origin}/api/auth/kakao/callback`
-  
+// Sign up
+app.post('/api/auth/signup', async (c) => {
   try {
-    // Exchange code for token
-    const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri,
-        code: code
-      })
-    })
+    const { email, password, nickname } = await c.req.json()
     
-    const tokens = await tokenRes.json() as { access_token?: string; error?: string }
-    
-    if (!tokens.access_token) {
-      return c.redirect('/?error=kakao_token_failed')
+    // Validation
+    if (!email || !password || !nickname) {
+      return c.json({ error: '모든 필드를 입력해주세요.' }, 400)
     }
     
-    // Get user info
-    const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
-    })
-    
-    const kakaoUser = await userRes.json() as {
-      id: number
-      kakao_account?: {
-        email?: string
-        profile?: {
-          nickname?: string
-          profile_image_url?: string
-        }
-      }
+    if (password.length < 6) {
+      return c.json({ error: '비밀번호는 최소 6자 이상이어야 합니다.' }, 400)
     }
     
-    const kakaoId = String(kakaoUser.id)
-    const email = kakaoUser.kakao_account?.email || null
-    const nickname = kakaoUser.kakao_account?.profile?.nickname || '사용자'
-    const profileImage = kakaoUser.kakao_account?.profile?.profile_image_url || null
+    if (!email.includes('@')) {
+      return c.json({ error: '올바른 이메일 형식이 아닙니다.' }, 400)
+    }
     
-    // Upsert user
+    // Check if email exists
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM users WHERE email = ?'
+    ).bind(email.toLowerCase()).first()
+    
+    if (existing) {
+      return c.json({ error: '이미 가입된 이메일입니다.' }, 400)
+    }
+    
+    // Hash password and create user
+    const passwordHash = await hashPassword(password)
+    
     await c.env.DB.prepare(`
-      INSERT INTO users (kakao_id, email, nickname, profile_image)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(kakao_id) DO UPDATE SET
-        email = excluded.email,
-        nickname = excluded.nickname,
-        profile_image = excluded.profile_image,
-        updated_at = CURRENT_TIMESTAMP
-    `).bind(kakaoId, email, nickname, profileImage).run()
+      INSERT INTO users (email, password_hash, nickname)
+      VALUES (?, ?, ?)
+    `).bind(email.toLowerCase(), passwordHash, nickname).run()
     
     // Get user ID
-    const user = await c.env.DB.prepare(`
-      SELECT id FROM users WHERE kakao_id = ?
-    `).bind(kakaoId).first() as { id: number }
+    const user = await c.env.DB.prepare(
+      'SELECT id FROM users WHERE email = ?'
+    ).bind(email.toLowerCase()).first() as { id: number }
     
     // Create session
     const sessionToken = crypto.randomUUID()
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
     
     await c.env.DB.prepare(`
       INSERT INTO sessions (user_id, session_token, expires_at)
@@ -178,13 +147,61 @@ app.get('/api/auth/kakao/callback', async (c) => {
       httpOnly: true,
       secure: true,
       sameSite: 'Lax',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
+      maxAge: 30 * 24 * 60 * 60
     })
     
-    return c.redirect('/?login=success')
+    return c.json({ success: true, user: { email, nickname } })
   } catch (e) {
-    console.error('Kakao auth error:', e)
-    return c.redirect('/?error=kakao_auth_error')
+    console.error('Signup error:', e)
+    return c.json({ error: '회원가입 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// Login
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json()
+    
+    if (!email || !password) {
+      return c.json({ error: '이메일과 비밀번호를 입력해주세요.' }, 400)
+    }
+    
+    // Find user
+    const user = await c.env.DB.prepare(
+      'SELECT id, email, password_hash, nickname FROM users WHERE email = ?'
+    ).bind(email.toLowerCase()).first() as { id: number, email: string, password_hash: string, nickname: string } | null
+    
+    if (!user) {
+      return c.json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' }, 401)
+    }
+    
+    // Verify password
+    const isValid = await verifyPassword(password, user.password_hash)
+    if (!isValid) {
+      return c.json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' }, 401)
+    }
+    
+    // Create session
+    const sessionToken = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    
+    await c.env.DB.prepare(`
+      INSERT INTO sessions (user_id, session_token, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(user.id, sessionToken, expiresAt).run()
+    
+    setCookie(c, 'session_token', sessionToken, {
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      maxAge: 30 * 24 * 60 * 60
+    })
+    
+    return c.json({ success: true, user: { email: user.email, nickname: user.nickname } })
+  } catch (e) {
+    console.error('Login error:', e)
+    return c.json({ error: '로그인 중 오류가 발생했습니다.' }, 500)
   }
 })
 
@@ -193,9 +210,13 @@ app.post('/api/auth/logout', async (c) => {
   const sessionToken = getCookie(c, 'session_token')
   
   if (sessionToken && c.env.DB) {
-    await c.env.DB.prepare(`
-      DELETE FROM sessions WHERE session_token = ?
-    `).bind(sessionToken).run()
+    try {
+      await c.env.DB.prepare(
+        'DELETE FROM sessions WHERE session_token = ?'
+      ).bind(sessionToken).run()
+    } catch (e) {
+      // Ignore errors
+    }
   }
   
   deleteCookie(c, 'session_token')
@@ -204,23 +225,18 @@ app.post('/api/auth/logout', async (c) => {
 
 // ===== Articles API =====
 
-// List articles
+// List articles (ALL FREE now!)
 app.get('/api/articles', async (c) => {
-  const user = c.get('user')
   const topic = c.req.query('topic')
   const limit = parseInt(c.req.query('limit') || '10')
   const offset = parseInt(c.req.query('offset') || '0')
   
-  // Determine accessible tiers
-  const userTier = user?.subscription_tier || 'free'
-  const accessibleTiers = userTier === 'pro' ? ['basic', 'pro'] : ['basic']
-  
   let query = `
     SELECT id, slug, title, journal, topic, tier, key_messages, published_at
     FROM articles
-    WHERE tier IN (${accessibleTiers.map(() => '?').join(',')})
+    WHERE 1=1
   `
-  const params: (string | number)[] = [...accessibleTiers]
+  const params: (string | number)[] = []
   
   if (topic) {
     query += ' AND topic = ?'
@@ -233,7 +249,6 @@ app.get('/api/articles', async (c) => {
   try {
     const articles = await c.env.DB.prepare(query).bind(...params).all()
     
-    // Parse key_messages JSON
     const parsedArticles = articles.results.map((a: any) => ({
       ...a,
       key_messages: JSON.parse(a.key_messages)
@@ -277,51 +292,33 @@ app.get('/api/articles', async (c) => {
   }
 })
 
-// Get single article
+// Get single article (ALL FREE now!)
 app.get('/api/articles/:slug', async (c) => {
   const slug = c.req.param('slug')
   const user = c.get('user')
   
   try {
-    const article = await c.env.DB.prepare(`
-      SELECT * FROM articles WHERE slug = ?
-    `).bind(slug).first() as any
+    const article = await c.env.DB.prepare(
+      'SELECT * FROM articles WHERE slug = ?'
+    ).bind(slug).first() as any
     
     if (!article) {
       return c.json({ error: 'Article not found' }, 404)
     }
     
-    // Check access
-    const userTier = user?.subscription_tier || 'free'
-    if (article.tier === 'pro' && userTier !== 'pro') {
-      return c.json({ 
-        error: 'Pro subscription required',
-        preview: {
-          id: article.id,
-          slug: article.slug,
-          title: article.title,
-          journal: article.journal,
-          topic: article.topic,
-          tier: article.tier,
-          published_at: article.published_at
-        }
-      }, 403)
-    }
-    
-    // Record read history
+    // Record read history if logged in
     if (user) {
-      await c.env.DB.prepare(`
-        INSERT INTO read_history (user_id, article_id) VALUES (?, ?)
-      `).bind(user.id, article.id).run()
+      try {
+        await c.env.DB.prepare(
+          'INSERT INTO read_history (user_id, article_id) VALUES (?, ?)'
+        ).bind(user.id, article.id).run()
+      } catch (e) {
+        // Ignore errors
+      }
     }
     
     // Parse JSON fields
     article.key_messages = JSON.parse(article.key_messages)
-    
-    // Remove full_content for non-pro users
-    if (userTier !== 'pro') {
-      delete article.full_content
-    }
     
     return c.json({ article })
   } catch (e) {
@@ -331,7 +328,6 @@ app.get('/api/articles/:slug', async (c) => {
 
 // ===== Bookmarks API =====
 
-// Get user bookmarks
 app.get('/api/bookmarks', async (c) => {
   const user = c.get('user')
   
@@ -354,7 +350,6 @@ app.get('/api/bookmarks', async (c) => {
   }
 })
 
-// Add bookmark
 app.post('/api/bookmarks/:articleId', async (c) => {
   const user = c.get('user')
   const articleId = parseInt(c.req.param('articleId'))
@@ -364,9 +359,9 @@ app.post('/api/bookmarks/:articleId', async (c) => {
   }
   
   try {
-    await c.env.DB.prepare(`
-      INSERT OR IGNORE INTO bookmarks (user_id, article_id) VALUES (?, ?)
-    `).bind(user.id, articleId).run()
+    await c.env.DB.prepare(
+      'INSERT OR IGNORE INTO bookmarks (user_id, article_id) VALUES (?, ?)'
+    ).bind(user.id, articleId).run()
     
     return c.json({ success: true })
   } catch (e) {
@@ -374,7 +369,6 @@ app.post('/api/bookmarks/:articleId', async (c) => {
   }
 })
 
-// Remove bookmark
 app.delete('/api/bookmarks/:articleId', async (c) => {
   const user = c.get('user')
   const articleId = parseInt(c.req.param('articleId'))
@@ -384,9 +378,9 @@ app.delete('/api/bookmarks/:articleId', async (c) => {
   }
   
   try {
-    await c.env.DB.prepare(`
-      DELETE FROM bookmarks WHERE user_id = ? AND article_id = ?
-    `).bind(user.id, articleId).run()
+    await c.env.DB.prepare(
+      'DELETE FROM bookmarks WHERE user_id = ? AND article_id = ?'
+    ).bind(user.id, articleId).run()
     
     return c.json({ success: true })
   } catch (e) {
@@ -398,6 +392,7 @@ app.delete('/api/bookmarks/:articleId', async (c) => {
 
 app.get('/', (c) => {
   const user = c.get('user')
+  const adsenseId = c.env.ADSENSE_CLIENT_ID || 'ca-pub-XXXXXXXXXX'
   
   return c.html(`
 <!DOCTYPE html>
@@ -405,62 +400,27 @@ app.get('/', (c) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedDigest - Daily Med-Bio Insight</title>
+  <title>MedDigest - 무료 의학 논문 인사이트</title>
+  <meta name="description" content="의료 전문가를 위한 무료 Med-Bio 논문 요약 서비스. 매일 업데이트되는 심혈관, 내분비, 노화, 당뇨 분야 최신 연구.">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-  <!-- WebGPU LLM 모듈 -->
+  
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>
+  
+  <!-- WebGPU LLM -->
   <script type="module" src="/static/webgpu-llm.js"></script>
   <script src="/static/ai-chat.js" defer></script>
+  
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            // 따뜻하고 지적인 색상 팔레트
-            primary: {
-              50: '#faf7f5',
-              100: '#f5ede8',
-              200: '#e8d5c8',
-              300: '#d4b69e',
-              400: '#c49a7a',
-              500: '#b07d56',
-              600: '#9a6642',
-              700: '#7d5236',
-              800: '#5f3f2a',
-              900: '#4a3121',
-              DEFAULT: '#7d5236'
-            },
-            sage: {
-              50: '#f6f7f6',
-              100: '#e3e7e3',
-              200: '#c7d0c7',
-              300: '#a3b3a3',
-              400: '#7d917d',
-              500: '#5f7360',
-              600: '#4a5c4b',
-              700: '#3d4a3e',
-              800: '#333d34',
-              900: '#2b332c',
-              DEFAULT: '#5f7360'
-            },
-            cream: {
-              50: '#fefdfb',
-              100: '#fcf9f4',
-              200: '#f9f3ea',
-              300: '#f5ebdb',
-              400: '#efe0c9',
-              DEFAULT: '#fcf9f4'
-            },
-            navy: {
-              700: '#2c3e50',
-              800: '#1e2a36',
-              900: '#141d24',
-              DEFAULT: '#2c3e50'
-            }
-          },
-          fontFamily: {
-            'serif': ['Noto Serif KR', 'Georgia', 'serif'],
-            'sans': ['Pretendard', 'Noto Sans KR', 'system-ui', 'sans-serif']
+            primary: { 50: '#faf7f5', 100: '#f5ede8', 200: '#e8d5c8', 300: '#d4b69e', 400: '#c49a7a', 500: '#b07d56', 600: '#9a6642', 700: '#7d5236', 800: '#5f3f2a', 900: '#4a3121', DEFAULT: '#7d5236' },
+            sage: { 50: '#f6f7f6', 100: '#e3e7e3', 200: '#c7d0c7', 300: '#a3b3a3', 400: '#7d917d', 500: '#5f7360', 600: '#4a5c4b', 700: '#3d4a3e', 800: '#333d34', 900: '#2b332c', DEFAULT: '#5f7360' },
+            cream: { 50: '#fefdfb', 100: '#fcf9f4', 200: '#f9f3ea', 300: '#f5ebdb', 400: '#efe0c9', DEFAULT: '#fcf9f4' },
+            navy: { 700: '#2c3e50', 800: '#1e2a36', 900: '#141d24', DEFAULT: '#2c3e50' }
           }
         }
       }
@@ -468,89 +428,19 @@ app.get('/', (c) => {
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
-    
-    body { 
-      font-family: 'Noto Sans KR', system-ui, sans-serif;
-      background-color: #fcf9f4;
-    }
-    
+    body { font-family: 'Noto Sans KR', system-ui, sans-serif; background-color: #fcf9f4; }
     .font-serif { font-family: 'Noto Serif KR', Georgia, serif; }
-    
-    /* 따뜻한 그라데이션 */
-    .warm-gradient { 
-      background: linear-gradient(135deg, #5f7360 0%, #7d5236 50%, #9a6642 100%); 
-    }
-    
-    .elegant-gradient {
-      background: linear-gradient(180deg, #f6f7f6 0%, #fcf9f4 100%);
-    }
-    
-    /* 부드러운 카드 스타일 */
-    .card-elegant { 
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 8px rgba(125, 82, 54, 0.06), 0 1px 3px rgba(125, 82, 54, 0.1);
-    }
-    .card-elegant:hover { 
-      transform: translateY(-3px); 
-      box-shadow: 0 12px 32px rgba(125, 82, 54, 0.12), 0 4px 12px rgba(125, 82, 54, 0.08);
-    }
-    
-    /* 티어 배지 */
-    .tier-badge-basic { 
-      background: linear-gradient(135deg, #e3e7e3 0%, #c7d0c7 100%); 
-      color: #4a5c4b; 
-    }
-    .tier-badge-pro { 
-      background: linear-gradient(135deg, #f5ebdb 0%, #e8d5c8 100%); 
-      color: #7d5236; 
-    }
-    
-    /* 구분선 */
-    .divider-warm {
-      height: 1px;
-      background: linear-gradient(90deg, transparent 0%, #d4b69e 50%, transparent 100%);
-    }
-    
-    /* 버튼 스타일 */
-    .btn-warm {
-      background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%);
-      transition: all 0.3s ease;
-    }
-    .btn-warm:hover {
-      background: linear-gradient(135deg, #5f3f2a 0%, #7d5236 100%);
-      transform: translateY(-1px);
-    }
-    
-    .btn-sage {
-      background: linear-gradient(135deg, #5f7360 0%, #7d917d 100%);
-      transition: all 0.3s ease;
-    }
-    .btn-sage:hover {
-      background: linear-gradient(135deg, #4a5c4b 0%, #5f7360 100%);
-    }
-    
-    /* 토픽 필터 버튼 */
-    .topic-filter {
-      border: 1px solid transparent;
-      transition: all 0.2s ease;
-    }
-    .topic-filter:hover {
-      border-color: #d4b69e;
-      background: #faf7f5;
-    }
-    .topic-filter.active {
-      background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%);
-      color: white;
-      border-color: transparent;
-    }
-    
-    /* 인용문 스타일 */
-    .quote-mark {
-      font-family: Georgia, serif;
-      font-size: 4rem;
-      line-height: 1;
-      opacity: 0.15;
-    }
+    .warm-gradient { background: linear-gradient(135deg, #5f7360 0%, #7d5236 50%, #9a6642 100%); }
+    .elegant-gradient { background: linear-gradient(180deg, #f6f7f6 0%, #fcf9f4 100%); }
+    .card-elegant { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 8px rgba(125, 82, 54, 0.06), 0 1px 3px rgba(125, 82, 54, 0.1); }
+    .card-elegant:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(125, 82, 54, 0.12), 0 4px 12px rgba(125, 82, 54, 0.08); }
+    .topic-filter { border: 1px solid transparent; transition: all 0.2s ease; }
+    .topic-filter:hover { border-color: #d4b69e; background: #faf7f5; }
+    .topic-filter.active { background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%); color: white; border-color: transparent; }
+    .btn-warm { background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%); transition: all 0.3s ease; }
+    .btn-warm:hover { background: linear-gradient(135deg, #5f3f2a 0%, #7d5236 100%); transform: translateY(-1px); }
+    .quote-mark { font-family: Georgia, serif; font-size: 4rem; line-height: 1; opacity: 0.15; }
+    .ad-container { min-height: 90px; background: #f9f3ea; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -564,23 +454,18 @@ app.get('/', (c) => {
           </div>
           <div>
             <h1 class="text-xl font-serif font-semibold text-navy-800 tracking-tight">MedDigest</h1>
-            <p class="text-xs text-sage-600 font-medium tracking-wide">Daily Med-Bio Insight</p>
+            <p class="text-xs text-sage-600 font-medium tracking-wide">무료 Med-Bio 인사이트</p>
           </div>
         </div>
         <nav class="flex items-center space-x-4">
           ${user ? `
             <div class="flex items-center space-x-4">
-              <div class="text-right">
-                <span class="text-sm font-medium text-navy-800">${user.nickname}님</span>
-                <span class="ml-2 px-2.5 py-1 rounded-full text-xs font-medium ${user.subscription_tier === 'pro' ? 'tier-badge-pro' : user.subscription_tier === 'basic' ? 'tier-badge-basic' : 'bg-gray-100 text-gray-600'}">${user.subscription_tier.toUpperCase()}</span>
-              </div>
+              <span class="text-sm font-medium text-navy-800">${user.nickname}님</span>
               <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition">로그아웃</button>
             </div>
           ` : `
-            <a href="/api/auth/kakao" class="flex items-center space-x-2 px-5 py-2.5 bg-[#FEE500] hover:bg-[#FDD835] text-[#3C1E1E] rounded-xl transition shadow-sm hover:shadow">
-              <img src="https://developers.kakao.com/assets/img/about/logos/kakao/kakao_login_btn_kakao_symbol.png" alt="Kakao" class="w-5 h-5">
-              <span class="font-medium text-sm">카카오 로그인</span>
-            </a>
+            <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition">로그인</button>
+            <button onclick="openAuthModal('signup')" class="px-5 py-2.5 btn-warm text-white rounded-xl text-sm font-medium shadow-sm">무료 회원가입</button>
           `}
         </nav>
       </div>
@@ -593,9 +478,11 @@ app.get('/', (c) => {
     <div class="absolute top-0 right-0 w-96 h-96 bg-sage-200/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
     <div class="absolute bottom-0 left-0 w-80 h-80 bg-primary-200/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
     
-    <div class="relative max-w-6xl mx-auto px-6 py-16 md:py-24">
+    <div class="relative max-w-6xl mx-auto px-6 py-16 md:py-20">
       <div class="max-w-3xl">
-        <p class="text-sage-600 font-medium text-sm tracking-widest uppercase mb-4">For Healthcare Professionals</p>
+        <div class="inline-flex items-center px-3 py-1 bg-sage-100 text-sage-700 rounded-full text-xs font-semibold mb-4">
+          <i class="fas fa-gift mr-2"></i>100% 무료 서비스
+        </div>
         <h2 class="font-serif text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-6">
           매일 한 편의 논문이<br>
           <span class="text-primary-700">임상의 통찰</span>로 다가옵니다
@@ -626,17 +513,30 @@ app.get('/', (c) => {
           </div>
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
-              <i class="fas fa-shield-alt text-sage-600 text-lg"></i>
+              <i class="fas fa-unlock text-sage-600 text-lg"></i>
             </div>
             <div>
-              <div class="text-2xl font-serif font-semibold text-navy-800">100%</div>
-              <div class="text-sm text-sage-600">로컬 AI</div>
+              <div class="text-2xl font-serif font-semibold text-navy-800">무료</div>
+              <div class="text-sm text-sage-600">전체 공개</div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Ad Banner (Top) -->
+  <div class="max-w-6xl mx-auto px-6 py-4">
+    <div class="ad-container">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="${adsenseId}"
+           data-ad-slot="1234567890"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </div>
 
   <!-- Topic Filter -->
   <section class="bg-white border-y border-primary-100">
@@ -669,7 +569,7 @@ app.get('/', (c) => {
   <main class="max-w-6xl mx-auto px-6 py-10">
     <div class="mb-8">
       <h3 class="font-serif text-2xl font-semibold text-navy-800 mb-2">최신 논문 인사이트</h3>
-      <p class="text-sage-600">전문가가 엄선한 Med-Bio 논문 요약</p>
+      <p class="text-sage-600">전문가가 엄선한 Med-Bio 논문 요약 · 100% 무료</p>
     </div>
     
     <div id="articles-container" class="grid gap-6">
@@ -680,62 +580,62 @@ app.get('/', (c) => {
         <p class="text-navy-700/60 font-medium">논문 요약을 불러오는 중...</p>
       </div>
     </div>
+    
+    <!-- Ad Banner (In-feed) -->
+    <div class="my-8">
+      <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="${adsenseId}"
+             data-ad-slot="0987654321"
+             data-ad-format="fluid"
+             data-ad-layout-key="-6t+ed+2i-1n-4w"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+    </div>
   </main>
 
-  <!-- Subscription CTA -->
-  ${!user || user.subscription_tier === 'free' ? `
+  <!-- Newsletter CTA -->
   <section class="relative overflow-hidden py-16 md:py-20">
     <div class="absolute inset-0 warm-gradient opacity-95"></div>
     <div class="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
     
-    <div class="relative max-w-5xl mx-auto px-6">
-      <div class="text-center mb-12">
-        <p class="text-white/70 font-medium text-sm tracking-widest uppercase mb-3">Premium Membership</p>
-        <h3 class="font-serif text-3xl md:text-4xl font-semibold text-white mb-4">더 깊은 인사이트를 원하신다면</h3>
-        <p class="text-white/80 text-lg max-w-2xl mx-auto">AI 기반 논문 분석과 전문가 코멘트로<br class="hidden md:block">연구의 핵심을 빠르게 파악하세요.</p>
+    <div class="relative max-w-4xl mx-auto px-6 text-center">
+      <div class="inline-flex items-center px-4 py-2 bg-white/20 rounded-full text-white text-sm font-medium mb-6">
+        <i class="fas fa-envelope mr-2"></i>뉴스레터 구독
       </div>
+      <h3 class="font-serif text-3xl md:text-4xl font-semibold text-white mb-4">매일 아침, 논문 인사이트를 받아보세요</h3>
+      <p class="text-white/80 text-lg mb-8">무료 회원가입하고 최신 Med-Bio 논문 요약을 이메일로 받아보세요.</p>
       
-      <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-          <div class="text-white/70 text-sm font-medium mb-2">Basic</div>
-          <div class="flex items-baseline mb-4">
-            <span class="text-4xl font-serif font-bold text-white">₩19,000</span>
-            <span class="text-white/60 ml-2">/월</span>
-          </div>
-          <div class="divider-warm opacity-30 mb-4"></div>
-          <ul class="space-y-3 text-white/90">
-            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>주 3회 논문 요약</li>
-            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>주간 하이라이트 레터</li>
-            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>북마크 기능</li>
-          </ul>
-          <button class="w-full mt-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-xl transition">시작하기</button>
+      ${user ? `
+        <div class="text-white/90">
+          <i class="fas fa-check-circle text-2xl mb-2"></i>
+          <p>이미 구독 중이십니다!</p>
         </div>
-        
-        <div class="bg-white rounded-2xl p-8 shadow-xl relative overflow-hidden">
-          <div class="absolute top-0 right-0 bg-gradient-to-l from-primary-500 to-sage-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">추천</div>
-          <div class="text-primary-600 text-sm font-bold mb-2">Pro</div>
-          <div class="flex items-baseline mb-4">
-            <span class="text-4xl font-serif font-bold text-navy-800">₩49,000</span>
-            <span class="text-navy-700/60 ml-2">/월</span>
-          </div>
-          <div class="divider-warm mb-4"></div>
-          <ul class="space-y-3 text-navy-700">
-            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>주 5회 논문 요약</li>
-            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i><strong class="font-semibold">AI 논문 질의응답</strong></li>
-            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>프로젝트 관점 코멘트</li>
-            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>전체 아카이브 접근</li>
-          </ul>
-          <button class="w-full mt-6 py-3 btn-warm text-white font-medium rounded-xl shadow-lg">Pro 시작하기</button>
-        </div>
-      </div>
+      ` : `
+        <button onclick="openAuthModal('signup')" class="px-8 py-4 bg-white text-primary-700 hover:bg-cream-100 rounded-xl font-semibold shadow-lg transition">
+          <i class="fas fa-user-plus mr-2"></i>무료 회원가입
+        </button>
+      `}
     </div>
   </section>
-  ` : ''}
 
-  <!-- Footer -->
+  <!-- Footer with Ad -->
   <footer class="bg-navy-800 text-white py-12">
     <div class="max-w-6xl mx-auto px-6">
+      <!-- Footer Ad -->
+      <div class="mb-8">
+        <div class="ad-container" style="background: rgba(255,255,255,0.05);">
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="${adsenseId}"
+               data-ad-slot="1122334455"
+               data-ad-format="horizontal"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+      </div>
+      
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="flex items-center space-x-3 mb-6 md:mb-0">
           <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
@@ -743,16 +643,23 @@ app.get('/', (c) => {
           </div>
           <div>
             <span class="font-serif font-semibold text-lg">MedDigest</span>
-            <p class="text-xs text-white/50">Daily Med-Bio Insight</p>
+            <p class="text-xs text-white/50">무료 Med-Bio 인사이트</p>
           </div>
         </div>
         <div class="text-sm text-white/50 text-center md:text-right">
           <p>© 2026 MedDigest. All rights reserved.</p>
-          <p class="mt-1">의료 전문가를 위한 논문 인사이트 서비스</p>
+          <p class="mt-1">의료 전문가를 위한 무료 논문 인사이트 서비스</p>
         </div>
       </div>
     </div>
   </footer>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div id="auth-modal-content"></div>
+    </div>
+  </div>
 
   <!-- Article Modal -->
   <div id="article-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
@@ -763,7 +670,145 @@ app.get('/', (c) => {
 
   <script>
     let currentTopic = '';
-    const userSubscription = '${user?.subscription_tier || 'free'}';
+    const isLoggedIn = ${user ? 'true' : 'false'};
+    const currentUser = ${user ? JSON.stringify({ email: user.email, nickname: user.nickname }) : 'null'};
+
+    // Auth Modal
+    function openAuthModal(mode) {
+      const modal = document.getElementById('auth-modal');
+      const content = document.getElementById('auth-modal-content');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      
+      if (mode === 'login') {
+        content.innerHTML = \`
+          <div class="p-8">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times"></i>
+            </button>
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-sage-500 to-primary-600 rounded-2xl flex items-center justify-center">
+                <i class="fas fa-book-medical text-white text-2xl"></i>
+              </div>
+              <h3 class="font-serif text-2xl font-semibold text-navy-800">로그인</h3>
+              <p class="text-navy-700/60 text-sm mt-1">MedDigest에 오신 것을 환영합니다</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">이메일</label>
+                <input type="email" id="login-email" required class="w-full px-4 py-3 border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent" placeholder="your@email.com">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">비밀번호</label>
+                <input type="password" id="login-password" required class="w-full px-4 py-3 border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent" placeholder="••••••••">
+              </div>
+              <div id="login-error" class="text-red-500 text-sm hidden"></div>
+              <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl font-medium">로그인</button>
+            </form>
+            <div class="mt-6 text-center text-sm text-navy-700/60">
+              계정이 없으신가요? <button onclick="openAuthModal('signup')" class="text-primary-600 hover:text-primary-700 font-medium">무료 회원가입</button>
+            </div>
+          </div>
+        \`;
+      } else {
+        content.innerHTML = \`
+          <div class="p-8">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times"></i>
+            </button>
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-sage-500 to-primary-600 rounded-2xl flex items-center justify-center">
+                <i class="fas fa-user-plus text-white text-2xl"></i>
+              </div>
+              <h3 class="font-serif text-2xl font-semibold text-navy-800">무료 회원가입</h3>
+              <p class="text-navy-700/60 text-sm mt-1">모든 콘텐츠를 무료로 이용하세요</p>
+            </div>
+            <form onsubmit="handleSignup(event)" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">닉네임</label>
+                <input type="text" id="signup-nickname" required class="w-full px-4 py-3 border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent" placeholder="홍길동">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">이메일</label>
+                <input type="email" id="signup-email" required class="w-full px-4 py-3 border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent" placeholder="your@email.com">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">비밀번호</label>
+                <input type="password" id="signup-password" required minlength="6" class="w-full px-4 py-3 border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent" placeholder="최소 6자 이상">
+              </div>
+              <div id="signup-error" class="text-red-500 text-sm hidden"></div>
+              <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl font-medium">회원가입</button>
+            </form>
+            <div class="mt-6 text-center text-sm text-navy-700/60">
+              이미 계정이 있으신가요? <button onclick="openAuthModal('login')" class="text-primary-600 hover:text-primary-700 font-medium">로그인</button>
+            </div>
+          </div>
+        \`;
+      }
+    }
+    
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('auth-modal').classList.remove('flex');
+    }
+    
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const errorDiv = document.getElementById('login-error');
+      
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          window.location.reload();
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (e) {
+        errorDiv.textContent = '로그인 중 오류가 발생했습니다.';
+        errorDiv.classList.remove('hidden');
+      }
+    }
+    
+    async function handleSignup(e) {
+      e.preventDefault();
+      const nickname = document.getElementById('signup-nickname').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const errorDiv = document.getElementById('signup-error');
+      
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, email, password })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          window.location.reload();
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (e) {
+        errorDiv.textContent = '회원가입 중 오류가 발생했습니다.';
+        errorDiv.classList.remove('hidden');
+      }
+    }
+    
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.reload();
+    }
 
     // Load articles
     async function loadArticles(topic = '') {
@@ -788,12 +833,12 @@ app.get('/', (c) => {
           return;
         }
         
-        container.innerHTML = data.articles.map(article => \`
+        container.innerHTML = data.articles.map((article, index) => \`
           <article class="bg-white rounded-2xl p-6 card-elegant cursor-pointer border border-primary-100/50" onclick="openArticle('\${article.slug}')">
             <div class="flex justify-between items-start mb-4">
               <div class="flex items-center space-x-3">
-                <span class="px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide \${article.tier === 'pro' ? 'tier-badge-pro' : 'tier-badge-basic'}">
-                  \${article.tier === 'pro' ? 'PRO' : 'BASIC'}
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-sage-100 text-sage-700">
+                  무료
                 </span>
                 <span class="flex items-center text-xs text-sage-600 font-medium">
                   <i class="fas fa-tag mr-1.5 text-sage-400"></i>\${article.topic}
@@ -822,7 +867,7 @@ app.get('/', (c) => {
                 <i class="fas fa-book-open"></i>
                 <span>5분 읽기</span>
               </div>
-              <span class="text-primary-600 text-sm font-medium flex items-center group-hover:text-primary-700">
+              <span class="text-primary-600 text-sm font-medium flex items-center">
                 자세히 보기 <i class="fas fa-arrow-right ml-2 text-xs"></i>
               </span>
             </div>
@@ -841,7 +886,6 @@ app.get('/', (c) => {
       }
     }
 
-    // Filter by topic
     function filterTopic(topic) {
       currentTopic = topic;
       document.querySelectorAll('.topic-btn').forEach(btn => {
@@ -856,7 +900,6 @@ app.get('/', (c) => {
       loadArticles(topic);
     }
 
-    // Open article modal
     async function openArticle(slug) {
       const modal = document.getElementById('article-modal');
       const content = document.getElementById('article-modal-content');
@@ -874,33 +917,8 @@ app.get('/', (c) => {
       try {
         const res = await fetch('/api/articles/' + slug);
         const data = await res.json();
-        
-        if (res.status === 403) {
-          content.innerHTML = \`
-            <div class="p-8">
-              <div class="text-center mb-8">
-                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary-100 to-sage-100 flex items-center justify-center">
-                  <i class="fas fa-lock text-3xl text-primary-600"></i>
-                </div>
-                <h3 class="font-serif text-xl font-semibold text-navy-800 mb-3">\${data.preview.title}</h3>
-                <p class="text-navy-700/60">이 콘텐츠는 Pro 멤버십 전용입니다.</p>
-              </div>
-              <div class="text-center">
-                <button class="px-8 py-3.5 btn-warm text-white rounded-xl font-medium shadow-lg">
-                  <i class="fas fa-crown mr-2"></i>Pro 업그레이드
-                </button>
-              </div>
-              <button onclick="closeModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-navy-800/5 hover:bg-navy-800/10 flex items-center justify-center text-navy-700/50 hover:text-navy-700 transition">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          \`;
-          return;
-        }
-        
         const article = data.article;
-        // AI Chat용 데이터 저장
-        currentArticleData = article;
+        
         content.innerHTML = \`
           <div class="relative">
             <button onclick="closeModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white/80 hover:text-white transition z-10">
@@ -909,7 +927,7 @@ app.get('/', (c) => {
             
             <div class="warm-gradient text-white p-8 rounded-t-2xl">
               <div class="flex items-center space-x-3 mb-4">
-                <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-sm">\${article.tier === 'pro' ? 'PRO' : 'BASIC'}</span>
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-sm">무료</span>
                 <span class="text-sm text-white/80">\${article.journal}</span>
               </div>
               <h2 class="font-serif text-2xl font-semibold mb-4 leading-relaxed">\${article.title}</h2>
@@ -917,6 +935,18 @@ app.get('/', (c) => {
                 <span class="flex items-center"><i class="fas fa-tag mr-2"></i>\${article.topic}</span>
                 <span class="flex items-center"><i class="fas fa-calendar mr-2"></i>\${article.published_at}</span>
                 \${article.doi ? \`<span class="flex items-center"><i class="fas fa-external-link-alt mr-2"></i>DOI: \${article.doi}</span>\` : ''}
+              </div>
+            </div>
+            
+            <!-- In-Article Ad -->
+            <div class="p-4 bg-cream-200">
+              <div class="ad-container">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="${adsenseId}"
+                     data-ad-slot="5566778899"
+                     data-ad-format="fluid"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
               </div>
             </div>
             
@@ -983,67 +1013,61 @@ app.get('/', (c) => {
                 </div>
               </section>
               
-              <!-- AI Chat (Pro only) -->
-              \${userSubscription === 'pro' ? \`
-                <section class="border-t border-primary-100 pt-8">
-                  <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
-                    <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
-                      <i class="fas fa-robot text-purple-600"></i>
-                    </span>
-                    AI에게 질문하기
-                    <span class="ml-3 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">PRO</span>
-                    <span class="ml-2 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">WebGPU</span>
-                  </h3>
-                  <div class="p-6 bg-gradient-to-br from-purple-50 via-cream-100 to-blue-50 rounded-xl border border-purple-100">
-                    <div class="flex items-center justify-between mb-4">
-                      <p class="text-sm text-navy-700/70">이 논문에 대해 궁금한 점을 물어보세요.</p>
-                      <div class="flex items-center space-x-3 text-xs">
-                        <span class="flex items-center text-sage-600 bg-white px-2.5 py-1 rounded-full shadow-sm">
-                          <i class="fas fa-shield-alt text-emerald-500 mr-1.5"></i>100% 로컬
-                        </span>
-                        <span class="flex items-center text-sage-600 bg-white px-2.5 py-1 rounded-full shadow-sm">
-                          <i class="fas fa-bolt text-amber-500 mr-1.5"></i>WebGPU
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <!-- 빠른 질문 버튼 -->
-                    <div class="flex flex-wrap gap-2 mb-4">
-                      <button onclick="document.getElementById('ai-question').value='이 연구의 주요 한계점은 무엇인가요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
-                        <i class="fas fa-exclamation-triangle mr-1.5 text-amber-500"></i>한계점
-                      </button>
-                      <button onclick="document.getElementById('ai-question').value='NNT(Number Needed to Treat)가 어떻게 되나요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
-                        <i class="fas fa-calculator mr-1.5 text-blue-500"></i>NNT
-                      </button>
-                      <button onclick="document.getElementById('ai-question').value='실제 임상에서 어떻게 적용할 수 있나요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
-                        <i class="fas fa-stethoscope mr-1.5 text-rose-500"></i>임상 적용
-                      </button>
-                      <button onclick="document.getElementById('ai-question').value='이 약물의 부작용 프로파일은 어떤가요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
-                        <i class="fas fa-pills mr-1.5 text-purple-500"></i>부작용
-                      </button>
-                    </div>
-                    
-                    <div class="flex space-x-3">
-                      <input type="text" id="ai-question" 
-                        class="flex-1 px-5 py-3.5 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white text-navy-800 placeholder-navy-400" 
-                        placeholder="예: 이 연구의 NNT는 어떻게 되나요?"
-                        onkeypress="if(event.key === 'Enter') askAI('\${article.slug}')">
-                      <button onclick="askAI('\${article.slug}')" class="px-6 py-3.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition shadow-lg hover:shadow-xl">
-                        <i class="fas fa-paper-plane"></i>
-                      </button>
-                    </div>
-                    <div id="ai-response" class="mt-4 hidden"></div>
-                    
-                    <div class="mt-4 pt-4 border-t border-purple-100 text-xs text-navy-700/50 flex items-center">
-                      <i class="fas fa-microchip mr-2"></i>
-                      Transformers.js v4 + Qwen2.5-0.5B | 첫 로딩시 약 400MB 다운로드
+              <!-- AI Chat (Free for all!) -->
+              <section class="border-t border-primary-100 pt-8">
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
+                  <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-robot text-purple-600"></i>
+                  </span>
+                  AI에게 질문하기
+                  <span class="ml-3 px-2.5 py-1 bg-sage-100 text-sage-700 text-xs font-semibold rounded-full">무료</span>
+                  <span class="ml-2 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">WebGPU</span>
+                </h3>
+                <div class="p-6 bg-gradient-to-br from-purple-50 via-cream-100 to-blue-50 rounded-xl border border-purple-100">
+                  <div class="flex items-center justify-between mb-4">
+                    <p class="text-sm text-navy-700/70">이 논문에 대해 궁금한 점을 물어보세요.</p>
+                    <div class="flex items-center space-x-3 text-xs">
+                      <span class="flex items-center text-sage-600 bg-white px-2.5 py-1 rounded-full shadow-sm">
+                        <i class="fas fa-shield-alt text-emerald-500 mr-1.5"></i>100% 로컬
+                      </span>
                     </div>
                   </div>
-                </section>
-              \` : ''}
+                  
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="setQuestion('이 연구의 주요 한계점은 무엇인가요?')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                      <i class="fas fa-exclamation-triangle mr-1.5 text-amber-500"></i>한계점
+                    </button>
+                    <button onclick="setQuestion('NNT(Number Needed to Treat)가 어떻게 되나요?')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                      <i class="fas fa-calculator mr-1.5 text-blue-500"></i>NNT
+                    </button>
+                    <button onclick="setQuestion('실제 임상에서 어떻게 적용할 수 있나요?')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                      <i class="fas fa-stethoscope mr-1.5 text-rose-500"></i>임상 적용
+                    </button>
+                  </div>
+                  
+                  <div class="flex space-x-3">
+                    <input type="text" id="ai-question" 
+                      class="flex-1 px-5 py-3.5 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white text-navy-800 placeholder-navy-400" 
+                      placeholder="예: 이 연구의 NNT는 어떻게 되나요?"
+                      onkeypress="if(event.key === 'Enter') askAI()">
+                    <button onclick="askAI()" class="px-6 py-3.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition shadow-lg hover:shadow-xl">
+                      <i class="fas fa-paper-plane"></i>
+                    </button>
+                  </div>
+                  <div id="ai-response" class="mt-4 hidden"></div>
+                  
+                  <div class="mt-4 pt-4 border-t border-purple-100 text-xs text-navy-700/50 flex items-center">
+                    <i class="fas fa-microchip mr-2"></i>
+                    Transformers.js v4 + Qwen2.5-0.5B | 첫 로딩시 약 400MB 다운로드
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         \`;
+        
+        // Store article data for AI
+        window.currentArticleData = article;
       } catch (e) {
         content.innerHTML = \`
           <div class="p-12 text-center">
@@ -1056,42 +1080,22 @@ app.get('/', (c) => {
       }
     }
 
-    // Close modal
     function closeModal() {
-      const modal = document.getElementById('article-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    // Logout
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.reload();
-    }
-
-    // AI Chat 초기화
-    let currentArticleData = null;
-    
-    function initAIChat(articleData) {
-      currentArticleData = articleData;
-      
-      // AI Chat 컨테이너가 없으면 생성
-      if (!window.medChat) {
-        window.medChat = new MedDigestChat('ai-chat-container');
-      }
-      
-      // 채팅 UI 렌더링
-      window.medChat.render(articleData);
+      document.getElementById('article-modal').classList.add('hidden');
+      document.getElementById('article-modal').classList.remove('flex');
     }
     
-    // AI Question - WebGPU LLM 연동
-    async function askAI(slug) {
+    function setQuestion(q) {
+      document.getElementById('ai-question').value = q;
+    }
+    
+    // AI Functions
+    async function askAI() {
       const question = document.getElementById('ai-question')?.value;
       const responseDiv = document.getElementById('ai-response');
       
       if (!question) return;
       
-      // WebGPU LLM이 준비되지 않은 경우
       if (!window.medLLM || !window.medLLM.isReady) {
         responseDiv.classList.remove('hidden');
         responseDiv.innerHTML = \`
@@ -1102,7 +1106,7 @@ app.get('/', (c) => {
               </div>
               <p class="text-sm text-navy-700 mb-4">AI 모델을 먼저 로딩해야 합니다.</p>
               <button onclick="startAIModel()" class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition shadow-md">
-                <i class="fas fa-play mr-2"></i>AI 시작하기
+                <i class="fas fa-play mr-2"></i>AI 시작하기 (무료)
               </button>
               <p class="text-xs text-navy-700/50 mt-4">WebGPU 기반 브라우저 실행 (약 300-500MB)</p>
             </div>
@@ -1124,12 +1128,11 @@ app.get('/', (c) => {
       \`;
       
       try {
-        // 현재 논문 컨텍스트로 응답 생성
-        const context = currentArticleData ? {
-          title: currentArticleData.title,
-          journal: currentArticleData.journal,
-          keyMessages: currentArticleData.key_messages,
-          clinicalInsight: currentArticleData.clinical_insight
+        const context = window.currentArticleData ? {
+          title: window.currentArticleData.title,
+          journal: window.currentArticleData.journal,
+          keyMessages: window.currentArticleData.key_messages,
+          clinicalInsight: window.currentArticleData.clinical_insight
         } : {};
         
         const response = await window.medLLM.generate(question, context, {
@@ -1162,7 +1165,7 @@ app.get('/', (c) => {
               <div>
                 <p class="text-sm text-red-700 font-medium">응답 생성 실패</p>
                 <p class="text-xs text-red-600 mt-1">\${error.message}</p>
-                <button onclick="askAI('\${slug}')" class="mt-3 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition">다시 시도</button>
+                <button onclick="askAI()" class="mt-3 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition">다시 시도</button>
               </div>
             </div>
           </div>
@@ -1170,7 +1173,6 @@ app.get('/', (c) => {
       }
     }
     
-    // AI 모델 시작
     async function startAIModel() {
       const responseDiv = document.getElementById('ai-response');
       
@@ -1188,7 +1190,6 @@ app.get('/', (c) => {
         </div>
       \`;
       
-      // 프로그레스 콜백 설정
       window.medLLM.on('onProgress', function(data) {
         var status = document.getElementById('ai-load-status');
         var progress = document.getElementById('ai-load-progress');
@@ -1197,7 +1198,7 @@ app.get('/', (c) => {
       });
       
       window.medLLM.on('onReady', function(info) {
-        responseDiv.innerHTML = \`
+        document.getElementById('ai-response').innerHTML = \`
           <div class="p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100 shadow-sm">
             <div class="flex items-center space-x-4">
               <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center flex-shrink-0">
@@ -1214,7 +1215,7 @@ app.get('/', (c) => {
       });
       
       window.medLLM.on('onError', function(error) {
-        responseDiv.innerHTML = \`
+        document.getElementById('ai-response').innerHTML = \`
           <div class="p-5 bg-red-50 rounded-xl border border-red-100">
             <div class="flex items-start space-x-3">
               <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -1237,9 +1238,13 @@ app.get('/', (c) => {
       }
     }
 
-    // Click outside modal to close
+    // Event listeners
     document.getElementById('article-modal').addEventListener('click', (e) => {
       if (e.target.id === 'article-modal') closeModal();
+    });
+    
+    document.getElementById('auth-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'auth-modal') closeAuthModal();
     });
 
     // Initialize
@@ -1303,7 +1308,7 @@ function generateCronSlug(title: string) {
 }
 
 async function handleCronJob(env: Bindings) {
-  console.log('🔬 MedDigest Cron Started:', new Date().toISOString());
+  console.log('MedDigest Cron Started:', new Date().toISOString());
   let saved = 0;
   
   for (const [, topic] of Object.entries(CRON_TOPICS)) {
@@ -1311,13 +1316,11 @@ async function handleCronJob(env: Bindings) {
     const articles = await searchPubMedForCron(term);
     
     for (const article of articles) {
-      // 중복 체크
       const exists = await env.DB.prepare('SELECT id FROM articles WHERE pmid = ?').bind(article.pmid).first();
       if (exists) continue;
       
-      // 간단 요약 생성 (AI 없이)
       const slug = generateCronSlug(article.title);
-      const tier = Math.random() > 0.5 ? 'pro' : 'basic';
+      const tier = 'basic'; // All free now
       const keyMessages = JSON.stringify([
         article.abstract.substring(0, 80) + '...',
         `저널: ${article.journal}`,
@@ -1342,18 +1345,16 @@ async function handleCronJob(env: Bindings) {
           new Date().toISOString().split('T')[0]
         ).run();
         saved++;
-        console.log('✅ Saved:', article.title.substring(0, 50));
       } catch (e) {
         console.error('DB error:', e);
       }
     }
   }
   
-  console.log(`🎉 Cron Completed: ${saved} articles saved`);
+  console.log(`Cron Completed: ${saved} articles saved`);
   return { saved };
 }
 
-// Manual cron trigger endpoint
 app.post('/api/cron/trigger', async (c) => {
   const auth = c.req.header('Authorization');
   const secret = c.env.CRON_SECRET || 'dev-secret';
@@ -1366,7 +1367,6 @@ app.post('/api/cron/trigger', async (c) => {
   return c.json(result);
 });
 
-// Export with scheduled handler for Cloudflare Workers
 export default {
   fetch: app.fetch,
   scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
