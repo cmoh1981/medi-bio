@@ -663,7 +663,7 @@ chatStyles.textContent = `
     background: #dc2626;
   }
   
-  .hidden {
+  .ai-chat-container .hidden {
     display: none !important;
   }
 `;
