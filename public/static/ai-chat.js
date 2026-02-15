@@ -342,7 +342,7 @@ class MedDigestChat {
       // 에러 메시지로 교체
       const contentElement = document.getElementById(`${this.currentStreamingMessageId}-content`);
       if (contentElement) {
-        contentElement.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>응답 생성 실패: ${error.message}</span>`;
+        contentElement.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>응답 생성 실패: ${error && error.message ? error.message : String(error || 'Unknown error')}</span>`;
       }
     } finally {
       this.isGenerating = false;

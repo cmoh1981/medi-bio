@@ -255,7 +255,7 @@ class MedDigestLLM {
     if (!this.isReady) {
       throw new Error('모델이 준비되지 않았습니다. initialize()를 먼저 호출하세요.');
     }
-    
+
     const {
       maxNewTokens = 256,
       temperature = 0.7,
@@ -263,56 +263,59 @@ class MedDigestLLM {
       doSample = true,
       stream = false
     } = options;
-    
-    // 컨텍스트를 포함한 프롬프트 구성
-    let prompt = MEDICAL_SYSTEM_PROMPT + '\n\n';
-    
+
+    // 컨텍스트를 포함한 사용자 메시지 구성
+    let userContent = '';
     if (context.title) {
-      prompt += `## 논문 정보\n`;
-      prompt += `제목: ${context.title}\n`;
-      if (context.journal) prompt += `저널: ${context.journal}\n`;
-      if (context.keyMessages) prompt += `핵심 메시지:\n${context.keyMessages.map((m, i) => `${i+1}. ${m}`).join('\n')}\n`;
-      if (context.clinicalInsight) prompt += `임상 관점: ${context.clinicalInsight}\n`;
-      prompt += '\n';
+      userContent += `논문 정보:\n`;
+      userContent += `제목: ${context.title}\n`;
+      if (context.journal) userContent += `저널: ${context.journal}\n`;
+      if (context.keyMessages) userContent += `핵심 메시지:\n${context.keyMessages.map((m, i) => `${i+1}. ${m}`).join('\n')}\n`;
+      if (context.clinicalInsight) userContent += `임상 관점: ${context.clinicalInsight}\n`;
+      userContent += '\n';
     }
-    
-    prompt += `## 사용자 질문\n${userMessage}\n\n## 답변\n`;
-    
+    userContent += userMessage;
+
+    // Chat messages 형식으로 구성 (SmolLM2 등 chat 모델용)
+    const messages = [
+      { role: 'system', content: MEDICAL_SYSTEM_PROMPT },
+      { role: 'user', content: userContent }
+    ];
+
     console.log('Generating response for:', userMessage.substring(0, 50) + '...');
-    
+
     try {
-      if (stream && this.callbacks.onToken) {
-        // Streaming 모드
-        const streamer = new TextStreamer(this.pipeline.tokenizer, {
-          skip_prompt: true,
-          callback_function: (token) => {
-            this.callbacks.onToken(token);
-          }
-        });
-        
-        const output = await this.pipeline(prompt, {
-          max_new_tokens: maxNewTokens,
-          temperature: temperature,
-          top_p: topP,
-          do_sample: doSample,
-          streamer: streamer
-        });
-        
-        return output[0].generated_text.replace(prompt, '').trim();
+      const output = await this.pipeline(messages, {
+        max_new_tokens: maxNewTokens,
+        temperature: temperature,
+        top_p: topP,
+        do_sample: doSample
+      });
+
+      // pipeline returns array; last message is the assistant response
+      const generated = output[0].generated_text;
+      let response;
+      if (Array.isArray(generated)) {
+        // Chat format: [{role, content}, ...] - get last assistant message
+        const lastMsg = generated[generated.length - 1];
+        response = (lastMsg && lastMsg.content) ? lastMsg.content.trim() : String(lastMsg).trim();
       } else {
-        // Non-streaming 모드
-        const output = await this.pipeline(prompt, {
-          max_new_tokens: maxNewTokens,
-          temperature: temperature,
-          top_p: topP,
-          do_sample: doSample
-        });
-        
-        const response = output[0].generated_text.replace(prompt, '').trim();
-        console.log('Generated response:', response.substring(0, 100) + '...');
-        
-        return response;
+        // Raw text fallback
+        response = String(generated).trim();
       }
+
+      // Stream tokens to UI if callback is set
+      if (stream && this.callbacks.onToken && response) {
+        // Simulate streaming by sending chunks
+        const words = response.split(' ');
+        for (const word of words) {
+          this.callbacks.onToken(word + ' ');
+          await new Promise(r => setTimeout(r, 30));
+        }
+      }
+
+      console.log('Generated response:', response.substring(0, 100) + '...');
+      return response;
     } catch (error) {
       console.error('Generation failed:', error);
       throw error;
