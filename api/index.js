@@ -977,6 +977,97 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ──────────────────────────────────────────
+    // 14. POST /api/ai/chat - Groq-powered AI chat
+    // ──────────────────────────────────────────
+    if (path === '/api/ai/chat' && req.method === 'POST') {
+      // Auth check
+      const cookies = parseCookies(req);
+      const token = cookies.session;
+      if (!token) {
+        return json(res, { error: 'Login required / 로그인이 필요합니다.' }, 401);
+      }
+
+      let sessionValid = false;
+      try {
+        const session = await supabase('sessions', {
+          query: `session_token=eq.${encodeURIComponent(token)}&select=user_id,expires_at`,
+          single: true,
+          serviceRole: true
+        });
+        sessionValid = session && new Date(session.expires_at) > new Date();
+      } catch { /* invalid session */ }
+
+      if (!sessionValid) {
+        return json(res, { error: 'Session expired / 세션이 만료되었습니다.' }, 401);
+      }
+
+      const { message, context } = await parseBody(req);
+      if (!message) {
+        return json(res, { error: 'Message required' }, 400);
+      }
+
+      // Build context-aware user message
+      let userContent = '';
+      if (context && context.title) {
+        userContent += `논문 정보:\n`;
+        userContent += `제목: ${context.title}\n`;
+        if (context.source) userContent += `출처: ${context.source}\n`;
+        if (context.keyMessages && context.keyMessages.length) {
+          userContent += `핵심 메시지:\n${context.keyMessages.map((m, i) => `${i+1}. ${m}`).join('\n')}\n`;
+        }
+        if (context.clinicalInsight) userContent += `임상 관점: ${context.clinicalInsight}\n`;
+        userContent += '\n';
+      }
+      userContent += message;
+
+      const systemPrompt = `You are a medical research assistant specializing in analyzing academic papers for clinical relevance.
+Your responses should be:
+1. Evidence-based and cite specific study findings
+2. Clinically actionable for practicing physicians
+3. Concise but comprehensive (respond in 3-5 paragraphs)
+4. Written in the same language as the user's question (Korean if asked in Korean, English if asked in English)
+
+Focus on: efficacy data, safety signals, clinical implications, and study limitations.`;
+
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent }
+            ],
+            max_tokens: 1024,
+            temperature: 0.7
+          })
+        });
+
+        if (!groqRes.ok) {
+          const errText = await groqRes.text();
+          console.error('Groq API error:', errText);
+          return json(res, { error: 'AI service error' }, 502);
+        }
+
+        const groqData = await groqRes.json();
+        const reply = groqData.choices?.[0]?.message?.content || 'No response generated.';
+
+        return json(res, {
+          reply,
+          model: groqData.model,
+          usage: groqData.usage
+        });
+      } catch (err) {
+        console.error('Groq API call failed:', err.message);
+        return json(res, { error: 'AI service unavailable' }, 503);
+      }
+    }
+
     // ── 404 ──
     return json(res, { error: 'Not found', path }, 404);
 
