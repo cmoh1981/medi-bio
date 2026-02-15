@@ -32,3 +32,5 @@ logs/
 .vscode/
 *.swp
 *.swo
+
+.vercel
