@@ -220,6 +220,97 @@ function parseUrl(req) {
   return new URL(req.url, `https://${req.headers.host || 'localhost'}`);
 }
 
+// ── Europe PMC API for automated article fetching ──
+const TOPIC_QUERIES = {
+  '심혈관': '(cardiovascular OR "heart failure" OR "myocardial infarction" OR hypertension)',
+  '내분비': '(endocrine OR thyroid OR "hormone therapy" OR "adrenal")',
+  '노화': '(aging OR "anti-aging" OR senescence OR longevity OR geroscience)',
+  '당뇨': '("diabetes mellitus" OR "insulin resistance" OR "glycemic control" OR HbA1c)',
+  '암': '(cancer OR oncology OR tumor OR neoplasm OR immunotherapy)'
+};
+
+async function fetchFromEuropePMC(topic, pageSize = 3) {
+  const query = TOPIC_QUERIES[topic];
+  if (!query) return [];
+
+  const searchQuery = `${query} AND SRC:MED AND OPEN_ACCESS:y AND (PUB_TYPE:"research-article" OR PUB_TYPE:"review")`;
+  const apiUrl = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(searchQuery)}&resultType=core&pageSize=${pageSize}&sort=FIRST_PDATE desc&format=json`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(apiUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    const data = await res.json();
+    return (data.resultList?.result || []).map(a => formatPMCArticle(a, topic));
+  } catch {
+    clearTimeout(timeout);
+    return [];
+  }
+}
+
+async function fetchAllTopics(specificTopic = null) {
+  const topics = specificTopic ? [specificTopic] : Object.keys(TOPIC_QUERIES);
+  const perTopic = specificTopic ? 5 : 2;
+
+  const results = await Promise.all(
+    topics.map(topic => fetchFromEuropePMC(topic, perTopic))
+  );
+  return results.flat();
+}
+
+function formatPMCArticle(article, topic) {
+  const abstract = (article.abstractText || '').replace(/<[^>]*>/g, '');
+  const title = (article.title || 'Untitled').replace(/<[^>]*>/g, '');
+
+  // Extract key sentences from abstract
+  const sentences = abstract
+    .split(/(?<=[.!?])\s+/)
+    .filter(s => s.length > 30 && s.length < 500)
+    .slice(0, 3);
+
+  const keyMessages = sentences.length > 0
+    ? sentences.map(s => s.trim())
+    : [abstract.substring(0, 200) || 'Abstract not available'];
+
+  return {
+    id: parseInt(article.pmid) || Math.floor(Math.random() * 90000) + 10000,
+    slug: `pubmed-${article.pmid || article.id}`,
+    title: title,
+    original_title: title,
+    journal: article.journalTitle || '',
+    doi: article.doi || '',
+    topic: topic,
+    tier: 'basic',
+    source: 'pubmed',
+    study_n: null,
+    study_endpoint: '',
+    study_limitations: '',
+    key_messages: keyMessages,
+    clinical_insight: abstract.length > 100 ? abstract.substring(0, 800) : abstract,
+    published_at: article.firstPublicationDate || new Date().toISOString().split('T')[0]
+  };
+}
+
+async function fetchPMCArticleByPMID(pmid) {
+  const apiUrl = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:${pmid} AND SRC:MED&resultType=core&format=json`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(apiUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    const data = await res.json();
+    const result = data.resultList?.result?.[0];
+    if (!result) return null;
+    return formatPMCArticle(result, '');
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
 // ── Main handler ──
 module.exports = async function handler(req, res) {
   // CORS
@@ -284,10 +375,23 @@ module.exports = async function handler(req, res) {
     // ── /api/articles ──
     if (path === '/api/articles' && req.method === 'GET') {
       const topic = url.searchParams.get('topic');
-      let articles = DEMO_ARTICLES.map(({ id, slug, title, journal, topic, tier, key_messages, published_at }) =>
-        ({ id, slug, title, journal, topic, tier, key_messages, published_at })
+
+      // Get curated demo articles
+      let demoList = DEMO_ARTICLES.map(({ id, slug, title, journal, topic, tier, key_messages, published_at }) =>
+        ({ id, slug, title, journal, topic, tier, key_messages, published_at, source: 'curated' })
       );
-      if (topic) articles = articles.filter(a => a.topic === topic);
+      if (topic) demoList = demoList.filter(a => a.topic === topic);
+
+      // Fetch latest from PubMed (Europe PMC)
+      let pubmedList = [];
+      try {
+        pubmedList = await fetchAllTopics(topic || null);
+      } catch (e) {
+        console.error('PubMed fetch error:', e);
+      }
+
+      // Combine: curated first, then PubMed
+      const articles = [...demoList, ...pubmedList];
       return json(res, { articles });
     }
 
@@ -295,6 +399,16 @@ module.exports = async function handler(req, res) {
     const articleMatch = path.match(/^\/api\/articles\/([^/]+)$/);
     if (articleMatch && req.method === 'GET') {
       const slug = decodeURIComponent(articleMatch[1]);
+
+      // Check if it's a PubMed article
+      if (slug.startsWith('pubmed-')) {
+        const pmid = slug.replace('pubmed-', '');
+        const article = await fetchPMCArticleByPMID(pmid);
+        if (article) return json(res, { article });
+        return json(res, { error: 'Article not found' }, 404);
+      }
+
+      // Otherwise look up in demo articles
       const article = getDemoArticle(slug);
       return json(res, { article });
     }
