@@ -129,6 +129,38 @@ const DEMO_ARTICLES = [
     ],
     clinical_insight: '최적의 약물 치료에도 잔여 위험이 있는 관상동맥질환 환자에게 저용량 콜히친 추가를 고려할 수 있습니다.',
     published_at: '2026-02-08'
+  },
+  {
+    id: 9, slug: 'immunotherapy-nsclc-2026',
+    title: '면역항암제 병용 요법이 비소세포폐암 5년 생존율을 2배로 향상',
+    original_title: 'Combination Immunotherapy in NSCLC: 5-Year Overall Survival Update',
+    journal: 'New England Journal of Medicine', doi: '10.1056/NEJMoa2026004',
+    topic: '암', tier: 'basic', study_n: 5200,
+    study_endpoint: 'Primary: 5-year overall survival rate',
+    study_limitations: 'PD-L1 ≥50% subgroup enriched, limited Asian data',
+    key_messages: [
+      'Nivolumab+Ipilimumab 병용이 PD-L1 양성 NSCLC에서 5년 OS 24%→43% 향상 (HR 0.61, P<0.001)',
+      '면역 관련 이상반응(irAE) 발생률 35%이나, 대부분 관리 가능',
+      '바이오마커 기반 환자 선별이 치료 효과 극대화에 핵심'
+    ],
+    clinical_insight: 'PD-L1 ≥1% 비소세포폐암 환자에서 면역항암제 병용 요법을 1차 치료로 적극 고려해야 합니다. TMB, MSI 등 추가 바이오마커 검사가 치료 반응 예측에 도움됩니다.',
+    published_at: '2026-02-07'
+  },
+  {
+    id: 10, slug: 'adc-breast-cancer-2026',
+    title: 'ADC(항체-약물 접합체)가 HER2-low 유방암에서 PFS 2배 연장',
+    original_title: 'Trastuzumab Deruxtecan in HER2-low Metastatic Breast Cancer: Updated Results',
+    journal: 'The Lancet Oncology', doi: '10.1016/S1470-2045(26)00089',
+    topic: '암', tier: 'pro', study_n: 1800,
+    study_endpoint: 'Primary: Progression-free survival (PFS)',
+    study_limitations: 'ILD risk 12%, requires close monitoring, cost-effectiveness uncertain',
+    key_messages: [
+      'T-DXd가 HER2-low 전이성 유방암에서 PFS를 5.4→10.1개월로 연장 (HR 0.50, P<0.001)',
+      '전체 생존율(OS)도 유의하게 개선 (23.9 vs 17.5개월, HR 0.66)',
+      '간질성 폐질환(ILD) 12% 발생 — 조기 발견 및 관리 프로토콜 필수'
+    ],
+    clinical_insight: 'HER2-low 유방암이라는 새로운 치료 대상군을 정립한 혁신적 연구입니다. IHC 1+ 또는 2+/ISH− 환자에서 T-DXd 투여를 고려하되, ILD 모니터링이 필수적입니다.',
+    published_at: '2026-02-06'
   }
 ];
 
