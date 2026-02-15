@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedDigest - 무료 의학 논문 인사이트</title>
-  <meta name="description" content="의료 전문가를 위한 무료 Med-Bio 논문 요약 서비스.">
+  <title>MedDigest - Free Med-Bio Insights</title>
+  <meta name="description" content="Free medical paper insight service for healthcare professionals. Powered by Longevity Lab.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8536708511920903" crossorigin="anonymous"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-  
+
   <script>
     tailwind.config = {
       theme: {
@@ -25,8 +25,9 @@
     }
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Noto+Sans+KR:wght@400;500;600&display=swap');
-    body { font-family: 'Noto Sans KR', sans-serif; background-color: #fcf9f4; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Noto+Sans+KR:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Noto Sans KR', 'Inter', sans-serif; background-color: #fcf9f4; }
+    [data-lang="en"] body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
     .font-serif { font-family: 'Noto Serif KR', serif; }
     .warm-gradient { background: linear-gradient(135deg, #5f7360 0%, #7d5236 50%, #9a6642 100%); }
     .elegant-gradient { background: linear-gradient(180deg, #f6f7f6 0%, #fcf9f4 100%); }
@@ -34,9 +35,17 @@
     .card-elegant:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(125, 82, 54, 0.12); }
     .topic-filter.active { background: linear-gradient(135deg, #7d5236, #9a6642); color: white; }
     .btn-warm { background: linear-gradient(135deg, #7d5236, #9a6642); }
+    .lang-toggle { transition: all 0.2s; }
+    .lang-toggle:hover { transform: scale(1.05); }
+    .source-badge { font-size: 10px; padding: 2px 8px; border-radius: 9999px; }
+    .source-pubmed { background: #dbeafe; color: #1d4ed8; }
+    .source-biorxiv { background: #fef3c7; color: #92400e; }
+    .source-medrxiv { background: #ede9fe; color: #5b21b6; }
+    .source-ct { background: #d1fae5; color: #065f46; }
   </style>
 </head>
 <body class="min-h-screen">
+
   <!-- Header -->
   <header class="bg-white/80 backdrop-blur-sm border-b border-primary-200/50 sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-6 py-4">
@@ -47,12 +56,17 @@
           </div>
           <div>
             <h1 class="text-xl font-serif font-semibold text-navy-800">MedDigest</h1>
-            <p class="text-xs text-sage-600 font-medium">무료 Med-Bio 인사이트</p>
+            <p class="text-xs text-sage-600 font-medium" data-i18n="subtitle">무료 Med-Bio 인사이트</p>
           </div>
         </div>
-        <nav id="nav-area" class="flex items-center space-x-4">
-          <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg">로그인</button>
-          <button onclick="openAuthModal('signup')" class="px-5 py-2.5 btn-warm text-white rounded-xl text-sm font-medium">무료 회원가입</button>
+        <nav id="nav-area" class="flex items-center space-x-3">
+          <!-- Language Toggle -->
+          <button onclick="toggleLang()" class="lang-toggle px-3 py-1.5 border border-primary-200 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50 flex items-center gap-1.5">
+            <i class="fas fa-globe text-xs"></i>
+            <span id="lang-label">EN</span>
+          </button>
+          <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg" data-i18n="login">로그인</button>
+          <button onclick="openAuthModal('signup')" class="px-5 py-2.5 btn-warm text-white rounded-xl text-sm font-medium" data-i18n="signup">무료 회원가입</button>
         </nav>
       </div>
     </div>
@@ -64,13 +78,16 @@
     <div class="relative max-w-6xl mx-auto px-6 py-16">
       <div class="max-w-3xl">
         <div class="inline-flex items-center px-3 py-1 bg-sage-100 text-sage-700 rounded-full text-xs font-semibold mb-4">
-          <i class="fas fa-gift mr-2"></i>100% 무료 서비스
+          <i class="fas fa-gift mr-2"></i><span data-i18n="freeService">100% 무료 서비스</span>
         </div>
-        <h2 class="font-serif text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-6">
+        <h2 class="font-serif text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-6" data-i18n="heroTitle">
           매일 한 편의 논문이<br><span class="text-primary-700">임상의 통찰</span>로 다가옵니다
         </h2>
-        <p class="text-lg text-navy-700/80 mb-8">
+        <p class="text-lg text-navy-700/80 mb-4" data-i18n="heroDesc">
           바쁜 임상의, 연구자를 위해 엄선된 Med-Bio 논문을 전문가 시각으로 해설해 드립니다.
+        </p>
+        <p class="text-sm text-sage-600 mb-8">
+          <i class="fas fa-link mr-1"></i><span data-i18n="poweredBy">Powered by</span> <a href="https://longevity-lab.io" target="_blank" class="text-primary-600 hover:underline font-medium">Longevity Lab</a>
         </p>
         <div class="flex flex-wrap gap-8">
           <div class="flex items-center space-x-3">
@@ -78,8 +95,8 @@
               <i class="fas fa-clock text-sage-600 text-lg"></i>
             </div>
             <div>
-              <div class="text-2xl font-serif font-semibold text-navy-800">5분</div>
-              <div class="text-sm text-navy-700/60">읽기 시간</div>
+              <div class="text-2xl font-serif font-semibold text-navy-800" data-i18n="readTime">5분</div>
+              <div class="text-sm text-navy-700/60" data-i18n="readTimeLabel">읽기 시간</div>
             </div>
           </div>
           <div class="flex items-center space-x-3">
@@ -87,8 +104,8 @@
               <i class="fas fa-calendar-check text-sage-600 text-lg"></i>
             </div>
             <div>
-              <div class="text-2xl font-serif font-semibold text-navy-800">매일</div>
-              <div class="text-sm text-navy-700/60">새 콘텐츠</div>
+              <div class="text-2xl font-serif font-semibold text-navy-800" data-i18n="dailyUpdate">매일</div>
+              <div class="text-sm text-navy-700/60" data-i18n="newContent">새 콘텐츠</div>
             </div>
           </div>
         </div>
@@ -100,17 +117,24 @@
   <section class="bg-white border-y border-primary-100">
     <div class="max-w-6xl mx-auto px-6 py-5">
       <div class="flex items-center space-x-3 overflow-x-auto">
-        <span class="text-navy-700/60 text-sm font-medium whitespace-nowrap"><i class="fas fa-filter mr-2"></i>주제</span>
+        <span class="text-navy-700/60 text-sm font-medium whitespace-nowrap"><i class="fas fa-filter mr-2"></i><span data-i18n="topicLabel">주제</span></span>
         <div class="h-6 w-px bg-primary-200"></div>
-        <button onclick="filterTopic('')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium active" data-topic="">전체</button>
-        <button onclick="filterTopic('심혈관')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="심혈관">심혈관</button>
-        <button onclick="filterTopic('내분비')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="내분비">내분비</button>
-        <button onclick="filterTopic('노화')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="노화">노화</button>
-        <button onclick="filterTopic('당뇨')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="당뇨">당뇨</button>
-        <button onclick="filterTopic('암')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="암">암</button>
+        <button onclick="filterTopic('')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium active" data-topic="" data-i18n="topicAll">전체</button>
+        <button onclick="filterTopic('노화')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="노화" data-i18n="topicAging">노화</button>
+        <button onclick="filterTopic('신경과학')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="신경과학" data-i18n="topicNeuro">신경과학</button>
+        <button onclick="filterTopic('암')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="암" data-i18n="topicCancer">암</button>
+        <button onclick="filterTopic('대사')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="대사" data-i18n="topicMetabolism">대사</button>
+        <button onclick="filterTopic('심혈관')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="심혈관" data-i18n="topicCardio">심혈관</button>
+        <button onclick="filterTopic('감염/면역')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="감염/면역" data-i18n="topicInfection">감염/면역</button>
       </div>
     </div>
   </section>
+
+  <!-- Ad slot top -->
+  <div class="max-w-6xl mx-auto px-6 pt-4">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-8536708511920903" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
 
   <!-- Articles -->
   <main class="max-w-6xl mx-auto px-6 py-10">
@@ -118,28 +142,34 @@
       <div class="col-span-2 text-center py-16">
         <div class="animate-pulse">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-sage-100"></div>
-          <p class="text-navy-700/60">논문을 불러오는 중...</p>
+          <p class="text-navy-700/60" data-i18n="loading">논문을 불러오는 중...</p>
         </div>
       </div>
     </div>
   </main>
 
+  <!-- Ad slot middle -->
+  <div class="max-w-6xl mx-auto px-6 pb-4">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-8536708511920903" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
   <!-- Newsletter -->
   <section class="relative overflow-hidden py-16">
     <div class="absolute inset-0 warm-gradient opacity-95"></div>
     <div class="relative max-w-4xl mx-auto px-6 text-center">
-      <h3 class="font-serif text-3xl font-semibold text-white mb-4">매일 아침, 최신 논문을 받아보세요</h3>
-      <p class="text-white/80 text-lg mb-8">새로운 논문 요약이 업데이트되면 이메일로 알려드립니다.</p>
+      <h3 class="font-serif text-3xl font-semibold text-white mb-4" data-i18n="newsletterTitle">매일 아침, 최신 논문을 받아보세요</h3>
+      <p class="text-white/80 text-lg mb-8" data-i18n="newsletterDesc">새로운 논문 요약이 업데이트되면 이메일로 알려드립니다.</p>
       <div id="newsletter-form-container">
         <form onsubmit="handleNewsletterSubscribe(event)" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input type="email" id="newsletter-email" placeholder="이메일 주소" required class="flex-1 px-5 py-3.5 rounded-xl text-navy-800 focus:outline-none">
-          <button type="submit" class="px-8 py-3.5 bg-white text-primary-700 rounded-xl font-semibold hover:bg-cream-100">구독하기</button>
+          <input type="email" id="newsletter-email" placeholder="Email" required class="flex-1 px-5 py-3.5 rounded-xl text-navy-800 focus:outline-none">
+          <button type="submit" class="px-8 py-3.5 bg-white text-primary-700 rounded-xl font-semibold hover:bg-cream-100" data-i18n="subscribe">구독하기</button>
         </form>
       </div>
       <div id="newsletter-success" class="hidden">
         <div class="bg-white/20 rounded-xl p-6 max-w-md mx-auto">
           <i class="fas fa-check-circle text-4xl text-white mb-3"></i>
-          <p class="text-white font-medium">구독이 완료되었습니다!</p>
+          <p class="text-white font-medium" data-i18n="subscribeSuccess">구독이 완료되었습니다!</p>
         </div>
       </div>
     </div>
@@ -153,23 +183,27 @@
           <div class="inline-flex items-center px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold mb-4 border border-purple-500/30">
             <i class="fas fa-microchip mr-2"></i>WebGPU Powered AI
           </div>
-          <h3 class="font-serif text-2xl md:text-3xl font-semibold text-white mb-4">
+          <h3 class="font-serif text-2xl md:text-3xl font-semibold text-white mb-4" data-i18n="webgpuTitle">
             브라우저에서 직접 실행되는<br><span class="text-purple-300">AI 논문 분석</span>
           </h3>
-          <p class="text-white/70 mb-4">Transformers.js와 WebGPU를 활용한 100% 로컬 AI. 데이터가 서버로 전송되지 않아 완벽한 프라이버시를 보장합니다.</p>
+          <p class="text-white/70 mb-4" data-i18n="webgpuDesc">Transformers.js와 WebGPU를 활용한 100% 로컬 AI. 데이터가 서버로 전송되지 않아 완벽한 프라이버시를 보장합니다.</p>
           <div class="flex items-start gap-2 mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
             <i class="fas fa-info-circle text-yellow-400 mt-0.5"></i>
-            <p class="text-yellow-200/90 text-sm">첫 사용 시 AI 모델 다운로드에 2~5분이 소요될 수 있습니다. 이후에는 캐시되어 빠르게 로드됩니다. 로딩 진행률(%)이 표시됩니다.</p>
+            <p class="text-yellow-200/90 text-sm" data-i18n="webgpuNotice">첫 사용 시 AI 모델 다운로드에 2~5분이 소요될 수 있습니다. 이후에는 캐시되어 빠르게 로드됩니다.</p>
+          </div>
+          <div class="flex items-start gap-2 mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+            <i class="fas fa-lock text-blue-400 mt-0.5"></i>
+            <p class="text-blue-200/90 text-sm" data-i18n="loginRequired">AI 분석 기능은 로그인 후 사용할 수 있습니다. 무료 회원가입 후 이용해 주세요.</p>
           </div>
           <div class="flex flex-wrap gap-4">
             <div class="flex items-center gap-2 text-sm text-white/60">
-              <i class="fas fa-shield-alt text-green-400"></i> 100% 프라이버시
+              <i class="fas fa-shield-alt text-green-400"></i> 100% Privacy
             </div>
             <div class="flex items-center gap-2 text-sm text-white/60">
-              <i class="fas fa-bolt text-yellow-400"></i> GPU 가속
+              <i class="fas fa-bolt text-yellow-400"></i> GPU Accelerated
             </div>
             <div class="flex items-center gap-2 text-sm text-white/60">
-              <i class="fas fa-wifi-slash text-blue-400"></i> 오프라인 가능
+              <i class="fas fa-wifi-slash text-blue-400"></i> Offline Ready
             </div>
           </div>
         </div>
@@ -198,27 +232,30 @@
             </div>
             <span class="font-serif font-semibold">MedDigest</span>
           </div>
-          <p class="text-white/50 text-sm">의료 전문가를 위한 Med-Bio 논문 인사이트 서비스</p>
+          <p class="text-white/50 text-sm" data-i18n="footerDesc">의료 전문가를 위한 Med-Bio 논문 인사이트 서비스</p>
+          <p class="text-white/40 text-xs mt-2">
+            <i class="fas fa-link mr-1"></i><span data-i18n="articleSource">Articles from</span> <a href="https://longevity-lab.io" target="_blank" class="text-purple-300 hover:underline">Longevity Lab</a>
+          </p>
         </div>
         <div>
-          <h4 class="font-semibold mb-3 text-white/80">기술</h4>
+          <h4 class="font-semibold mb-3 text-white/80" data-i18n="techTitle">기술</h4>
           <ul class="space-y-2 text-sm text-white/50">
             <li><i class="fas fa-microchip mr-2 text-purple-400"></i>WebGPU + Transformers.js</li>
             <li><i class="fas fa-robot mr-2 text-blue-400"></i>Qwen2.5-0.5B-Instruct</li>
-            <li><i class="fas fa-lock mr-2 text-green-400"></i>100% 로컬 추론</li>
+            <li><i class="fas fa-lock mr-2 text-green-400"></i>100% Local Inference</li>
           </ul>
         </div>
         <div>
-          <h4 class="font-semibold mb-3 text-white/80">브라우저 지원</h4>
+          <h4 class="font-semibold mb-3 text-white/80" data-i18n="browserTitle">브라우저 지원</h4>
           <ul class="space-y-2 text-sm text-white/50">
-            <li><i class="fab fa-chrome mr-2 text-yellow-400"></i>Chrome 113+ (권장)</li>
+            <li><i class="fab fa-chrome mr-2 text-yellow-400"></i>Chrome 113+</li>
             <li><i class="fab fa-edge mr-2 text-blue-400"></i>Edge 113+</li>
             <li><i class="fab fa-safari mr-2 text-gray-400"></i>Safari (WASM)</li>
           </ul>
         </div>
       </div>
       <div class="border-t border-white/10 pt-6 text-center space-y-2">
-        <p class="text-white/40 text-sm">© 2026 MedDigest. Powered by WebGPU + Vercel + Supabase</p>
+        <p class="text-white/40 text-sm">© 2026 MedDigest. Powered by WebGPU + Vercel</p>
         <p class="text-white/50 text-sm font-medium">Brown Biotech Inc. Contact: brownbio.ocm@gmail.com</p>
       </div>
     </div>
@@ -241,7 +278,141 @@
   <script src="/static/ai-chat.js"></script>
 
   <script>
-    // ── Auth Modal ──
+    // ── i18n System ──
+    const i18n = {
+      ko: {
+        subtitle: '무료 Med-Bio 인사이트',
+        login: '로그인',
+        signup: '무료 회원가입',
+        logout: '로그아웃',
+        freeService: '100% 무료 서비스',
+        heroTitle: '매일 한 편의 논문이<br><span class="text-primary-700">임상의 통찰</span>로 다가옵니다',
+        heroDesc: '바쁜 임상의, 연구자를 위해 엄선된 Med-Bio 논문을 전문가 시각으로 해설해 드립니다.',
+        poweredBy: 'Powered by',
+        readTime: '5분',
+        readTimeLabel: '읽기 시간',
+        dailyUpdate: '매일',
+        newContent: '새 콘텐츠',
+        topicLabel: '주제',
+        topicAll: '전체',
+        topicAging: '노화',
+        topicNeuro: '신경과학',
+        topicCancer: '암',
+        topicMetabolism: '대사',
+        topicCardio: '심혈관',
+        topicInfection: '감염/면역',
+        loading: '논문을 불러오는 중...',
+        noArticles: '논문이 없습니다.',
+        aiAvailable: 'AI 분석 가능',
+        aiLoginNeeded: '로그인 후 AI 분석',
+        readOriginal: '원문 보기',
+        keyMessages: '핵심 메시지',
+        clinicalInsight: '임상적 시사점',
+        aiAnalysis: 'AI 논문 분석',
+        loginForAI: 'AI 분석은 로그인 후 사용할 수 있습니다.',
+        loginForAIBtn: '로그인하고 AI 분석 사용하기',
+        signupForAIBtn: '무료 회원가입',
+        newsletterTitle: '매일 아침, 최신 논문을 받아보세요',
+        newsletterDesc: '새로운 논문 요약이 업데이트되면 이메일로 알려드립니다.',
+        subscribe: '구독하기',
+        subscribeSuccess: '구독이 완료되었습니다!',
+        webgpuTitle: '브라우저에서 직접 실행되는<br><span class="text-purple-300">AI 논문 분석</span>',
+        webgpuDesc: 'Transformers.js와 WebGPU를 활용한 100% 로컬 AI. 데이터가 서버로 전송되지 않아 완벽한 프라이버시를 보장합니다.',
+        webgpuNotice: '첫 사용 시 AI 모델 다운로드에 2~5분이 소요될 수 있습니다. 이후에는 캐시되어 빠르게 로드됩니다.',
+        loginRequired: 'AI 분석 기능은 로그인 후 사용할 수 있습니다. 무료 회원가입 후 이용해 주세요.',
+        footerDesc: '의료 전문가를 위한 Med-Bio 논문 인사이트 서비스',
+        articleSource: 'Articles from',
+        techTitle: '기술',
+        browserTitle: '브라우저 지원',
+        loginTitle: '로그인',
+        signupTitle: '무료 회원가입',
+        emailPlaceholder: '이메일',
+        passwordPlaceholder: '비밀번호 (6자 이상)',
+        nicknamePlaceholder: '닉네임',
+        noAccount: '계정이 없으신가요?',
+        hasAccount: '이미 계정이 있으신가요?',
+        errorLoad: '오류가 발생했습니다.'
+      },
+      en: {
+        subtitle: 'Free Med-Bio Insights',
+        login: 'Login',
+        signup: 'Sign Up Free',
+        logout: 'Logout',
+        freeService: '100% Free Service',
+        heroTitle: 'Daily research papers<br>delivered as <span class="text-primary-700">clinical insights</span>',
+        heroDesc: 'Curated Med-Bio paper summaries with expert analysis for busy clinicians and researchers.',
+        poweredBy: 'Powered by',
+        readTime: '5 min',
+        readTimeLabel: 'Read time',
+        dailyUpdate: 'Daily',
+        newContent: 'New content',
+        topicLabel: 'Topics',
+        topicAll: 'All',
+        topicAging: 'Aging',
+        topicNeuro: 'Neuroscience',
+        topicCancer: 'Cancer',
+        topicMetabolism: 'Metabolism',
+        topicCardio: 'Cardiovascular',
+        topicInfection: 'Infection',
+        loading: 'Loading articles...',
+        noArticles: 'No articles found.',
+        aiAvailable: 'AI Analysis',
+        aiLoginNeeded: 'Login for AI Analysis',
+        readOriginal: 'Read Original',
+        keyMessages: 'Key Messages',
+        clinicalInsight: 'Clinical Insight',
+        aiAnalysis: 'AI Paper Analysis',
+        loginForAI: 'Login is required to use AI analysis.',
+        loginForAIBtn: 'Login to Use AI Analysis',
+        signupForAIBtn: 'Sign Up Free',
+        newsletterTitle: 'Get the latest papers every morning',
+        newsletterDesc: 'We\'ll email you when new paper summaries are available.',
+        subscribe: 'Subscribe',
+        subscribeSuccess: 'Successfully subscribed!',
+        webgpuTitle: 'AI paper analysis<br>running <span class="text-purple-300">directly in your browser</span>',
+        webgpuDesc: '100% local AI powered by Transformers.js and WebGPU. Your data never leaves your device — complete privacy guaranteed.',
+        webgpuNotice: 'First use requires 2-5 minutes to download the AI model. It will be cached for fast loading afterward.',
+        loginRequired: 'AI analysis requires login. Sign up for free to access this feature.',
+        footerDesc: 'Med-Bio paper insight service for healthcare professionals',
+        articleSource: 'Articles from',
+        techTitle: 'Technology',
+        browserTitle: 'Browser Support',
+        loginTitle: 'Login',
+        signupTitle: 'Sign Up Free',
+        emailPlaceholder: 'Email',
+        passwordPlaceholder: 'Password (6+ chars)',
+        nicknamePlaceholder: 'Nickname',
+        noAccount: 'Don\'t have an account?',
+        hasAccount: 'Already have an account?',
+        errorLoad: 'An error occurred.'
+      }
+    };
+
+    let currentLang = localStorage.getItem('meddigest-lang') || 'ko';
+    let currentUser = null;
+
+    function t(key) {
+      return i18n[currentLang]?.[key] || i18n['ko']?.[key] || key;
+    }
+
+    function translatePage() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const text = t(key);
+        if (text) el.innerHTML = text;
+      });
+      document.getElementById('lang-label').textContent = currentLang === 'ko' ? 'EN' : 'KO';
+      document.documentElement.setAttribute('data-lang', currentLang);
+    }
+
+    function toggleLang() {
+      currentLang = currentLang === 'ko' ? 'en' : 'ko';
+      localStorage.setItem('meddigest-lang', currentLang);
+      translatePage();
+      loadArticles(currentTopicFilter);
+    }
+
+    // ── Auth ──
     function openAuthModal(mode) {
       const modal = document.getElementById('auth-modal');
       const content = document.getElementById('auth-modal-content');
@@ -251,27 +422,27 @@
       content.innerHTML = mode === 'login' ? `
         <div class="p-8">
           <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fas fa-times"></i></button>
-          <h3 class="font-serif text-2xl font-semibold text-center mb-6">로그인</h3>
+          <h3 class="font-serif text-2xl font-semibold text-center mb-6">${t('loginTitle')}</h3>
           <form onsubmit="handleLogin(event)" class="space-y-4">
-            <input type="email" id="login-email" required class="w-full px-4 py-3 border rounded-xl" placeholder="이메일">
-            <input type="password" id="login-password" required class="w-full px-4 py-3 border rounded-xl" placeholder="비밀번호">
+            <input type="email" id="login-email" required class="w-full px-4 py-3 border rounded-xl" placeholder="${t('emailPlaceholder')}">
+            <input type="password" id="login-password" required class="w-full px-4 py-3 border rounded-xl" placeholder="${t('passwordPlaceholder')}">
             <div id="login-error" class="text-red-500 text-sm hidden"></div>
-            <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl">로그인</button>
+            <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl">${t('login')}</button>
           </form>
-          <p class="mt-4 text-center text-sm">계정이 없으신가요? <button onclick="openAuthModal('signup')" class="text-primary-600">회원가입</button></p>
+          <p class="mt-4 text-center text-sm">${t('noAccount')} <button onclick="openAuthModal('signup')" class="text-primary-600 font-medium">${t('signup')}</button></p>
         </div>
       ` : `
         <div class="p-8">
           <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fas fa-times"></i></button>
-          <h3 class="font-serif text-2xl font-semibold text-center mb-6">무료 회원가입</h3>
+          <h3 class="font-serif text-2xl font-semibold text-center mb-6">${t('signupTitle')}</h3>
           <form onsubmit="handleSignup(event)" class="space-y-4">
-            <input type="text" id="signup-nickname" required class="w-full px-4 py-3 border rounded-xl" placeholder="닉네임">
-            <input type="email" id="signup-email" required class="w-full px-4 py-3 border rounded-xl" placeholder="이메일">
-            <input type="password" id="signup-password" required minlength="6" class="w-full px-4 py-3 border rounded-xl" placeholder="비밀번호 (6자 이상)">
+            <input type="text" id="signup-nickname" required class="w-full px-4 py-3 border rounded-xl" placeholder="${t('nicknamePlaceholder')}">
+            <input type="email" id="signup-email" required class="w-full px-4 py-3 border rounded-xl" placeholder="${t('emailPlaceholder')}">
+            <input type="password" id="signup-password" required minlength="6" class="w-full px-4 py-3 border rounded-xl" placeholder="${t('passwordPlaceholder')}">
             <div id="signup-error" class="text-red-500 text-sm hidden"></div>
-            <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl">회원가입</button>
+            <button type="submit" class="w-full py-3 btn-warm text-white rounded-xl">${t('signup')}</button>
           </form>
-          <p class="mt-4 text-center text-sm">이미 계정이 있으신가요? <button onclick="openAuthModal('login')" class="text-primary-600">로그인</button></p>
+          <p class="mt-4 text-center text-sm">${t('hasAccount')} <button onclick="openAuthModal('login')" class="text-primary-600 font-medium">${t('login')}</button></p>
         </div>
       `;
     }
@@ -289,18 +460,22 @@
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
         if (data.success) {
+          currentUser = data.user;
+          localStorage.setItem('meddigest-user', JSON.stringify(data.user));
           closeAuthModal();
           updateNavForUser(data.user);
+          loadArticles(currentTopicFilter);
         } else {
-          document.getElementById('login-error').textContent = data.error || '로그인 실패';
+          document.getElementById('login-error').textContent = data.error;
           document.getElementById('login-error').classList.remove('hidden');
         }
       } catch (err) {
-        document.getElementById('login-error').textContent = '서버 연결 오류';
+        document.getElementById('login-error').textContent = t('errorLoad');
         document.getElementById('login-error').classList.remove('hidden');
       }
     }
@@ -314,18 +489,22 @@
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ nickname, email, password })
         });
         const data = await res.json();
         if (data.success) {
+          currentUser = data.user;
+          localStorage.setItem('meddigest-user', JSON.stringify(data.user));
           closeAuthModal();
           updateNavForUser(data.user);
+          loadArticles(currentTopicFilter);
         } else {
-          document.getElementById('signup-error').textContent = data.error || '회원가입 실패';
+          document.getElementById('signup-error').textContent = data.error;
           document.getElementById('signup-error').classList.remove('hidden');
         }
       } catch (err) {
-        document.getElementById('signup-error').textContent = '서버 연결 오류';
+        document.getElementById('signup-error').textContent = t('errorLoad');
         document.getElementById('signup-error').classList.remove('hidden');
       }
     }
@@ -333,13 +512,19 @@
     function updateNavForUser(user) {
       const nav = document.getElementById('nav-area');
       nav.innerHTML = `
+        <button onclick="toggleLang()" class="lang-toggle px-3 py-1.5 border border-primary-200 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50 flex items-center gap-1.5">
+          <i class="fas fa-globe text-xs"></i>
+          <span id="lang-label">${currentLang === 'ko' ? 'EN' : 'KO'}</span>
+        </button>
         <span class="text-sm text-navy-700"><i class="fas fa-user-circle mr-1 text-sage-600"></i>${user.nickname || user.email}</span>
-        <button onclick="handleLogout()" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg">로그아웃</button>
+        <button onclick="handleLogout()" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg">${t('logout')}</button>
       `;
     }
 
     async function handleLogout() {
-      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch(e) {}
+      currentUser = null;
+      localStorage.removeItem('meddigest-user');
       location.reload();
     }
 
@@ -358,10 +543,20 @@
           document.getElementById('newsletter-form-container').classList.add('hidden');
           document.getElementById('newsletter-success').classList.remove('hidden');
         } else alert(data.error);
-      } catch (e) { alert('오류가 발생했습니다.'); }
+      } catch (e) { alert(t('errorLoad')); }
     }
 
     // ── Articles ──
+    let currentTopicFilter = '';
+
+    function getSourceBadge(source) {
+      if (source.includes('PubMed')) return 'source-pubmed';
+      if (source.includes('bioRxiv')) return 'source-biorxiv';
+      if (source.includes('medRxiv')) return 'source-medrxiv';
+      if (source.includes('ClinicalTrials')) return 'source-ct';
+      return 'source-pubmed';
+    }
+
     async function loadArticles(topic = '') {
       const container = document.getElementById('articles-container');
       try {
@@ -371,38 +566,51 @@
         const data = await res.json();
 
         if (!data.articles || !data.articles.length) {
-          container.innerHTML = '<div class="col-span-2 text-center py-16"><p class="text-navy-700/60">논문이 없습니다.</p></div>';
+          container.innerHTML = `<div class="col-span-2 text-center py-16"><p class="text-navy-700/60">${t('noArticles')}</p></div>`;
           return;
         }
 
-        container.innerHTML = data.articles.map(article => `
+        const isEn = currentLang === 'en';
+        container.innerHTML = data.articles.map(article => {
+          const title = isEn ? (article.title_en || article.title) : article.title;
+          const topicLabel = isEn ? (article.topic_en || article.topic) : article.topic;
+          const messages = isEn ? (article.key_messages_en || article.key_messages || []) : (article.key_messages || []);
+          const aiLabel = currentUser ? t('aiAvailable') : t('aiLoginNeeded');
+
+          return `
           <article class="bg-white rounded-2xl p-6 card-elegant cursor-pointer border border-primary-100/50" onclick="openArticle('${article.slug}')">
             <div class="flex justify-between items-start mb-4">
-              <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-sage-100 text-sage-700">${article.topic}</span>
+              <div class="flex items-center gap-2">
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-sage-100 text-sage-700">${topicLabel}</span>
+                <span class="source-badge ${getSourceBadge(article.source)}">${article.source}</span>
+              </div>
               <span class="text-xs text-navy-700/40">${article.published_at}</span>
             </div>
-            <p class="text-xs text-primary-600 font-medium mb-2">${article.journal}</p>
-            <h3 class="font-serif text-xl font-semibold text-navy-800 mb-4">${article.title}</h3>
+            <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 leading-snug">${title}</h3>
             <div class="space-y-2">
-              ${(article.key_messages || []).slice(0, 2).map((msg, i) => `
+              ${messages.slice(0, 2).map((msg, i) => `
                 <div class="flex items-start space-x-3">
-                  <span class="w-6 h-6 bg-sage-500 rounded-lg flex items-center justify-center text-white text-xs font-bold">${i + 1}</span>
+                  <span class="w-6 h-6 bg-sage-500 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">${i + 1}</span>
                   <p class="text-sm text-navy-700/80">${msg}</p>
                 </div>
               `).join('')}
             </div>
             <div class="mt-4 pt-3 border-t border-primary-100/30 flex items-center justify-between">
-              <span class="text-xs text-primary-500 font-medium"><i class="fas fa-robot mr-1"></i>AI 분석 가능</span>
+              <span class="text-xs ${currentUser ? 'text-primary-500' : 'text-gray-400'} font-medium">
+                <i class="fas fa-${currentUser ? 'robot' : 'lock'} mr-1"></i>${aiLabel}
+              </span>
               <span class="text-xs text-navy-700/40"><i class="fas fa-arrow-right"></i></span>
             </div>
           </article>
-        `).join('');
+        `;
+        }).join('');
       } catch (e) {
-        container.innerHTML = '<div class="col-span-2 text-center py-16"><p class="text-red-500">오류가 발생했습니다.</p></div>';
+        container.innerHTML = `<div class="col-span-2 text-center py-16"><p class="text-red-500">${t('errorLoad')}</p></div>`;
       }
     }
 
     function filterTopic(topic) {
+      currentTopicFilter = topic;
       document.querySelectorAll('.topic-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.topic === topic) btn.classList.add('active');
@@ -417,7 +625,7 @@
       const modal = document.getElementById('article-modal');
       const content = document.getElementById('article-modal-content');
       modal.style.display = 'block';
-      content.innerHTML = '<div class="p-8 text-center"><div class="animate-pulse"><div class="w-12 h-12 mx-auto mb-4 rounded-full bg-sage-100"></div><p class="text-navy-700/60">불러오는 중...</p></div></div>';
+      content.innerHTML = '<div class="p-8 text-center"><div class="animate-pulse"><div class="w-12 h-12 mx-auto mb-4 rounded-full bg-sage-100"></div><p class="text-navy-700/60">Loading...</p></div></div>';
 
       try {
         const res = await fetch('/api/articles/' + slug);
@@ -426,7 +634,11 @@
 
         const article = data.article;
         currentArticleData = article;
-        const keyMessages = typeof article.key_messages === 'string' ? JSON.parse(article.key_messages) : (article.key_messages || []);
+        const isEn = currentLang === 'en';
+        const title = isEn ? (article.title_en || article.title) : article.title;
+        const topicLabel = isEn ? (article.topic_en || article.topic) : article.topic;
+        const keyMessages = isEn ? (article.key_messages_en || article.key_messages || []) : (article.key_messages || []);
+        const insight = isEn ? (article.clinical_insight_en || article.clinical_insight) : article.clinical_insight;
 
         content.innerHTML = `
           <div class="relative">
@@ -435,25 +647,17 @@
             <!-- Header -->
             <div class="warm-gradient p-8 rounded-t-2xl">
               <div class="flex items-center gap-3 mb-4">
-                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">${article.topic}</span>
-                ${article.doi ? `<a href="https://doi.org/${article.doi}" target="_blank" rel="noopener" class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs hover:bg-white/20 transition-colors"><i class="fas fa-external-link-alt mr-1"></i>DOI</a>` : ''}
+                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">${topicLabel}</span>
+                <span class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs">${article.source}</span>
+                ${article.original_url ? `<a href="${article.original_url}" target="_blank" rel="noopener" class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs hover:bg-white/20 transition-colors"><i class="fas fa-external-link-alt mr-1"></i>${t('readOriginal')}</a>` : ''}
               </div>
-              <p class="text-white/70 text-sm">${article.journal}${article.published_at ? ' · ' + article.published_at : ''}</p>
-              <h2 class="font-serif text-2xl font-semibold text-white mt-2 leading-snug">${article.title}</h2>
-              ${article.original_title ? `<p class="text-white/50 text-sm mt-2 italic">${article.original_title}</p>` : ''}
+              <p class="text-white/70 text-sm">${article.published_at}</p>
+              <h2 class="font-serif text-2xl font-semibold text-white mt-2 leading-snug">${title}</h2>
             </div>
 
             <div class="p-8">
-              <!-- Study metadata -->
-              ${article.study_n || article.study_endpoint ? `
-                <div class="flex flex-wrap gap-3 mb-6">
-                  ${article.study_n ? `<span class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium"><i class="fas fa-users mr-1"></i>N = ${article.study_n.toLocaleString()}</span>` : ''}
-                  ${article.study_endpoint ? `<span class="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-medium"><i class="fas fa-bullseye mr-1"></i>${article.study_endpoint}</span>` : ''}
-                </div>
-              ` : ''}
-
               <!-- Key Messages -->
-              <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-key text-sage-500 mr-2"></i>핵심 메시지</h3>
+              <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-key text-sage-500 mr-2"></i>${t('keyMessages')}</h3>
               <div class="space-y-3 mb-8">
                 ${keyMessages.map((msg, i) => `
                   <div class="flex items-start space-x-4 p-4 bg-sage-50 rounded-xl">
@@ -464,36 +668,39 @@
               </div>
 
               <!-- Clinical Insight -->
-              ${article.clinical_insight ? `
-                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-stethoscope text-blue-500 mr-2"></i>임상적 시사점</h3>
+              ${insight ? `
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-stethoscope text-blue-500 mr-2"></i>${t('clinicalInsight')}</h3>
                 <div class="p-5 bg-blue-50 rounded-xl border-l-4 border-blue-400 mb-8">
-                  <p class="text-navy-700 text-sm leading-relaxed">${article.clinical_insight}</p>
-                </div>
-              ` : ''}
-
-              <!-- Study Limitations -->
-              ${article.study_limitations ? `
-                <div class="p-4 bg-amber-50 rounded-xl border-l-4 border-amber-400 mb-8">
-                  <h4 class="text-sm font-semibold text-amber-800 mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>연구 한계점</h4>
-                  <p class="text-amber-700 text-sm">${article.study_limitations}</p>
+                  <p class="text-navy-700 text-sm leading-relaxed">${insight}</p>
                 </div>
               ` : ''}
 
               <!-- AI Chat Section -->
               <div class="border-t border-gray-100 pt-8">
-                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-robot text-purple-500 mr-2"></i>AI 논문 분석</h3>
-                <div id="ai-chat-container"></div>
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-robot text-purple-500 mr-2"></i>${t('aiAnalysis')}</h3>
+                ${currentUser ? `
+                  <div id="ai-chat-container"></div>
+                ` : `
+                  <div class="text-center py-8 bg-gray-50 rounded-xl">
+                    <i class="fas fa-lock text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-600 mb-4">${t('loginForAI')}</p>
+                    <div class="flex gap-3 justify-center">
+                      <button onclick="closeModal(); openAuthModal('login')" class="px-6 py-2.5 btn-warm text-white rounded-xl text-sm font-medium">${t('loginForAIBtn')}</button>
+                      <button onclick="closeModal(); openAuthModal('signup')" class="px-6 py-2.5 border border-primary-300 text-primary-700 rounded-xl text-sm font-medium hover:bg-primary-50">${t('signupForAIBtn')}</button>
+                    </div>
+                  </div>
+                `}
               </div>
             </div>
           </div>
         `;
 
-        // Initialize AI Chat for this article
-        if (window.MedDigestChat) {
+        // Initialize AI Chat only for logged-in users
+        if (currentUser && window.MedDigestChat) {
           window.medChat = new MedDigestChat('ai-chat-container');
           window.medChat.render(article);
         }
-      } catch (e) { content.innerHTML = '<div class="p-8"><p class="text-red-500">오류가 발생했습니다.</p></div>'; }
+      } catch (e) { content.innerHTML = `<div class="p-8"><p class="text-red-500">${t('errorLoad')}</p></div>`; }
     }
 
     function closeModal() {
@@ -505,18 +712,34 @@
     document.getElementById('article-modal').addEventListener('click', e => { if (e.target.id === 'article-modal' || e.target.closest('.min-h-full') === e.target) closeModal(); });
     document.getElementById('auth-modal').addEventListener('click', e => { if (e.target.id === 'auth-modal') closeAuthModal(); });
 
-    // Check login status on load
+    // Check login status
     async function checkAuth() {
+      // Check localStorage first for quick UI
+      const stored = localStorage.getItem('meddigest-user');
+      if (stored) {
+        try {
+          currentUser = JSON.parse(stored);
+          updateNavForUser(currentUser);
+        } catch(e) {}
+      }
+      // Verify with server
       try {
-        const res = await fetch('/api/me');
+        const res = await fetch('/api/me', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (data.user) updateNavForUser(data.user);
+          if (data.user) {
+            currentUser = data.user;
+            localStorage.setItem('meddigest-user', JSON.stringify(data.user));
+            updateNavForUser(data.user);
+          } else if (!stored) {
+            currentUser = null;
+          }
         }
       } catch(e) {}
     }
 
     // Init
+    translatePage();
     loadArticles();
     checkAuth();
   </script>
