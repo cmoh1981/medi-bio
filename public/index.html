@@ -143,10 +143,77 @@
     </div>
   </section>
 
+  <!-- WebGPU Feature Banner -->
+  <section class="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 py-12">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row items-center gap-8">
+        <div class="flex-1">
+          <div class="inline-flex items-center px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold mb-4 border border-purple-500/30">
+            <i class="fas fa-microchip mr-2"></i>WebGPU Powered AI
+          </div>
+          <h3 class="font-serif text-2xl md:text-3xl font-semibold text-white mb-4">
+            브라우저에서 직접 실행되는<br><span class="text-purple-300">AI 논문 분석</span>
+          </h3>
+          <p class="text-white/70 mb-6">Transformers.js와 WebGPU를 활용한 100% 로컬 AI. 데이터가 서버로 전송되지 않아 완벽한 프라이버시를 보장합니다.</p>
+          <div class="flex flex-wrap gap-4">
+            <div class="flex items-center gap-2 text-sm text-white/60">
+              <i class="fas fa-shield-alt text-green-400"></i> 100% 프라이버시
+            </div>
+            <div class="flex items-center gap-2 text-sm text-white/60">
+              <i class="fas fa-bolt text-yellow-400"></i> GPU 가속
+            </div>
+            <div class="flex items-center gap-2 text-sm text-white/60">
+              <i class="fas fa-wifi-slash text-blue-400"></i> 오프라인 가능
+            </div>
+          </div>
+        </div>
+        <div class="w-48 h-48 relative">
+          <div class="absolute inset-0 bg-purple-500/20 rounded-3xl rotate-6"></div>
+          <div class="absolute inset-0 bg-indigo-500/20 rounded-3xl -rotate-3"></div>
+          <div class="relative bg-gradient-to-br from-purple-600 to-indigo-600 rounded-3xl flex items-center justify-center h-full shadow-2xl">
+            <div class="text-center">
+              <i class="fas fa-brain text-5xl text-white/90 mb-2"></i>
+              <p class="text-white/70 text-xs font-medium">On-Device AI</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="bg-navy-800 text-white py-12">
-    <div class="max-w-6xl mx-auto px-6 text-center">
-      <p class="text-white/50">© 2026 MedDigest. Powered by Vercel + Supabase</p>
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid md:grid-cols-3 gap-8 mb-8">
+        <div>
+          <div class="flex items-center space-x-3 mb-4">
+            <div class="w-8 h-8 bg-gradient-to-br from-sage-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <i class="fas fa-book-medical text-white text-sm"></i>
+            </div>
+            <span class="font-serif font-semibold">MedDigest</span>
+          </div>
+          <p class="text-white/50 text-sm">의료 전문가를 위한 Med-Bio 논문 인사이트 서비스</p>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-3 text-white/80">기술</h4>
+          <ul class="space-y-2 text-sm text-white/50">
+            <li><i class="fas fa-microchip mr-2 text-purple-400"></i>WebGPU + Transformers.js</li>
+            <li><i class="fas fa-robot mr-2 text-blue-400"></i>Qwen2.5-0.5B-Instruct</li>
+            <li><i class="fas fa-lock mr-2 text-green-400"></i>100% 로컬 추론</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-3 text-white/80">브라우저 지원</h4>
+          <ul class="space-y-2 text-sm text-white/50">
+            <li><i class="fab fa-chrome mr-2 text-yellow-400"></i>Chrome 113+ (권장)</li>
+            <li><i class="fab fa-edge mr-2 text-blue-400"></i>Edge 113+</li>
+            <li><i class="fab fa-safari mr-2 text-gray-400"></i>Safari (WASM)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-white/10 pt-6 text-center">
+        <p class="text-white/40 text-sm">© 2026 MedDigest. Powered by WebGPU + Vercel + Supabase</p>
+      </div>
     </div>
   </footer>
 
@@ -156,17 +223,24 @@
   </div>
 
   <!-- Article Modal -->
-  <div id="article-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 overflow-y-auto">
-    <div id="article-modal-content" class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8 relative"></div>
+  <div id="article-modal" class="fixed inset-0 bg-black/50 z-50 hidden overflow-y-auto p-4" style="display:none;">
+    <div class="min-h-full flex items-start justify-center py-8">
+      <div id="article-modal-content" class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full relative"></div>
+    </div>
   </div>
 
+  <!-- Load WebGPU LLM & AI Chat -->
+  <script src="/static/webgpu-llm.js"></script>
+  <script src="/static/ai-chat.js"></script>
+
   <script>
+    // ── Auth Modal ──
     function openAuthModal(mode) {
       const modal = document.getElementById('auth-modal');
       const content = document.getElementById('auth-modal-content');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      
+
       content.innerHTML = mode === 'login' ? `
         <div class="p-8">
           <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fas fa-times"></i></button>
@@ -194,22 +268,75 @@
         </div>
       `;
     }
-    
+
     function closeAuthModal() {
       document.getElementById('auth-modal').classList.add('hidden');
       document.getElementById('auth-modal').classList.remove('flex');
     }
-    
+
     async function handleLogin(e) {
       e.preventDefault();
-      alert('로그인 기능은 Supabase 연동 후 사용 가능합니다.');
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeAuthModal();
+          updateNavForUser(data.user);
+        } else {
+          document.getElementById('login-error').textContent = data.error || '로그인 실패';
+          document.getElementById('login-error').classList.remove('hidden');
+        }
+      } catch (err) {
+        document.getElementById('login-error').textContent = '서버 연결 오류';
+        document.getElementById('login-error').classList.remove('hidden');
+      }
     }
-    
+
     async function handleSignup(e) {
       e.preventDefault();
-      alert('회원가입 기능은 Supabase 연동 후 사용 가능합니다.');
+      const nickname = document.getElementById('signup-nickname').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, email, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeAuthModal();
+          updateNavForUser(data.user);
+        } else {
+          document.getElementById('signup-error').textContent = data.error || '회원가입 실패';
+          document.getElementById('signup-error').classList.remove('hidden');
+        }
+      } catch (err) {
+        document.getElementById('signup-error').textContent = '서버 연결 오류';
+        document.getElementById('signup-error').classList.remove('hidden');
+      }
     }
-    
+
+    function updateNavForUser(user) {
+      const nav = document.getElementById('nav-area');
+      nav.innerHTML = `
+        <span class="text-sm text-navy-700"><i class="fas fa-user-circle mr-1 text-sage-600"></i>${user.nickname || user.email}</span>
+        <button onclick="handleLogout()" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg">로그아웃</button>
+      `;
+    }
+
+    async function handleLogout() {
+      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+      location.reload();
+    }
+
+    // ── Newsletter ──
     async function handleNewsletterSubscribe(e) {
       e.preventDefault();
       const email = document.getElementById('newsletter-email').value;
@@ -227,6 +354,7 @@
       } catch (e) { alert('오류가 발생했습니다.'); }
     }
 
+    // ── Articles ──
     async function loadArticles(topic = '') {
       const container = document.getElementById('articles-container');
       try {
@@ -234,12 +362,12 @@
         if (topic) params.set('topic', topic);
         const res = await fetch('/api/articles?' + params.toString());
         const data = await res.json();
-        
+
         if (!data.articles || !data.articles.length) {
           container.innerHTML = '<div class="col-span-2 text-center py-16"><p class="text-navy-700/60">논문이 없습니다.</p></div>';
           return;
         }
-        
+
         container.innerHTML = data.articles.map(article => `
           <article class="bg-white rounded-2xl p-6 card-elegant cursor-pointer border border-primary-100/50" onclick="openArticle('${article.slug}')">
             <div class="flex justify-between items-start mb-4">
@@ -256,13 +384,17 @@
                 </div>
               `).join('')}
             </div>
+            <div class="mt-4 pt-3 border-t border-primary-100/30 flex items-center justify-between">
+              <span class="text-xs text-primary-500 font-medium"><i class="fas fa-robot mr-1"></i>AI 분석 가능</span>
+              <span class="text-xs text-navy-700/40"><i class="fas fa-arrow-right"></i></span>
+            </div>
           </article>
         `).join('');
       } catch (e) {
         container.innerHTML = '<div class="col-span-2 text-center py-16"><p class="text-red-500">오류가 발생했습니다.</p></div>';
       }
     }
-    
+
     function filterTopic(topic) {
       document.querySelectorAll('.topic-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -270,61 +402,116 @@
       });
       loadArticles(topic);
     }
-    
+
+    // ── Article Detail + AI Chat ──
+    let currentArticleData = null;
+
     async function openArticle(slug) {
       const modal = document.getElementById('article-modal');
       const content = document.getElementById('article-modal-content');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      content.innerHTML = '<div class="p-8 text-center"><p>불러오는 중...</p></div>';
-      
+      modal.style.display = 'block';
+      content.innerHTML = '<div class="p-8 text-center"><div class="animate-pulse"><div class="w-12 h-12 mx-auto mb-4 rounded-full bg-sage-100"></div><p class="text-navy-700/60">불러오는 중...</p></div></div>';
+
       try {
         const res = await fetch('/api/articles/' + slug);
         const data = await res.json();
         if (data.error) { content.innerHTML = '<div class="p-8"><p class="text-red-500">' + data.error + '</p></div>'; return; }
-        
+
         const article = data.article;
+        currentArticleData = article;
         const keyMessages = typeof article.key_messages === 'string' ? JSON.parse(article.key_messages) : (article.key_messages || []);
-        
+
         content.innerHTML = `
           <div class="relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md"><i class="fas fa-times"></i></button>
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors"><i class="fas fa-times text-navy-700"></i></button>
+
+            <!-- Header -->
             <div class="warm-gradient p-8 rounded-t-2xl">
-              <span class="px-3 py-1 bg-white/20 text-white rounded-full text-sm">${article.topic}</span>
-              <p class="text-white/80 text-sm mt-4">${article.journal}</p>
-              <h2 class="font-serif text-2xl font-semibold text-white mt-2">${article.title}</h2>
+              <div class="flex items-center gap-3 mb-4">
+                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">${article.topic}</span>
+                ${article.doi ? `<a href="https://doi.org/${article.doi}" target="_blank" rel="noopener" class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs hover:bg-white/20 transition-colors"><i class="fas fa-external-link-alt mr-1"></i>DOI</a>` : ''}
+              </div>
+              <p class="text-white/70 text-sm">${article.journal}${article.published_at ? ' · ' + article.published_at : ''}</p>
+              <h2 class="font-serif text-2xl font-semibold text-white mt-2 leading-snug">${article.title}</h2>
+              ${article.original_title ? `<p class="text-white/50 text-sm mt-2 italic">${article.original_title}</p>` : ''}
             </div>
+
             <div class="p-8">
-              <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4">핵심 메시지</h3>
-              <div class="space-y-4">
+              <!-- Study metadata -->
+              ${article.study_n || article.study_endpoint ? `
+                <div class="flex flex-wrap gap-3 mb-6">
+                  ${article.study_n ? `<span class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium"><i class="fas fa-users mr-1"></i>N = ${article.study_n.toLocaleString()}</span>` : ''}
+                  ${article.study_endpoint ? `<span class="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-medium"><i class="fas fa-bullseye mr-1"></i>${article.study_endpoint}</span>` : ''}
+                </div>
+              ` : ''}
+
+              <!-- Key Messages -->
+              <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-key text-sage-500 mr-2"></i>핵심 메시지</h3>
+              <div class="space-y-3 mb-8">
                 ${keyMessages.map((msg, i) => `
                   <div class="flex items-start space-x-4 p-4 bg-sage-50 rounded-xl">
-                    <span class="w-8 h-8 bg-sage-500 rounded-lg flex items-center justify-center text-white font-bold">${i + 1}</span>
-                    <p class="text-navy-700">${msg}</p>
+                    <span class="w-8 h-8 bg-sage-500 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">${i + 1}</span>
+                    <p class="text-navy-700 text-sm leading-relaxed">${msg}</p>
                   </div>
                 `).join('')}
               </div>
+
+              <!-- Clinical Insight -->
               ${article.clinical_insight ? `
-                <h3 class="font-serif text-lg font-semibold text-navy-800 mt-8 mb-4">임상적 시사점</h3>
-                <div class="p-4 bg-blue-50 rounded-xl border-l-4 border-blue-400">
-                  <p class="text-navy-700">${article.clinical_insight}</p>
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-stethoscope text-blue-500 mr-2"></i>임상적 시사점</h3>
+                <div class="p-5 bg-blue-50 rounded-xl border-l-4 border-blue-400 mb-8">
+                  <p class="text-navy-700 text-sm leading-relaxed">${article.clinical_insight}</p>
                 </div>
               ` : ''}
+
+              <!-- Study Limitations -->
+              ${article.study_limitations ? `
+                <div class="p-4 bg-amber-50 rounded-xl border-l-4 border-amber-400 mb-8">
+                  <h4 class="text-sm font-semibold text-amber-800 mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>연구 한계점</h4>
+                  <p class="text-amber-700 text-sm">${article.study_limitations}</p>
+                </div>
+              ` : ''}
+
+              <!-- AI Chat Section -->
+              <div class="border-t border-gray-100 pt-8">
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-robot text-purple-500 mr-2"></i>AI 논문 분석</h3>
+                <div id="ai-chat-container"></div>
+              </div>
             </div>
           </div>
         `;
+
+        // Initialize AI Chat for this article
+        if (window.MedDigestChat) {
+          window.medChat = new MedDigestChat('ai-chat-container');
+          window.medChat.render(article);
+        }
       } catch (e) { content.innerHTML = '<div class="p-8"><p class="text-red-500">오류가 발생했습니다.</p></div>'; }
     }
-    
+
     function closeModal() {
-      document.getElementById('article-modal').classList.add('hidden');
-      document.getElementById('article-modal').classList.remove('flex');
+      document.getElementById('article-modal').style.display = 'none';
+      currentArticleData = null;
     }
 
-    document.getElementById('article-modal').addEventListener('click', e => { if (e.target.id === 'article-modal') closeModal(); });
+    // Close modals on backdrop click
+    document.getElementById('article-modal').addEventListener('click', e => { if (e.target.id === 'article-modal' || e.target.closest('.min-h-full') === e.target) closeModal(); });
     document.getElementById('auth-modal').addEventListener('click', e => { if (e.target.id === 'auth-modal') closeAuthModal(); });
-    
+
+    // Check login status on load
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) updateNavForUser(data.user);
+        }
+      } catch(e) {}
+    }
+
+    // Init
     loadArticles();
+    checkAuth();
   </script>
 </body>
 </html>
