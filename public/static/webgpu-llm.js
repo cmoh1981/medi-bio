@@ -143,16 +143,37 @@ class MedDigestLLM {
       env.allowLocalModels = false;
       
       this._updateProgress(20, '모델 다운로드 중...');
-      
+
+      // Track per-file progress for accurate overall %
+      const fileProgress = {};
+      let totalFiles = 0;
+
       this.pipeline = await pipeline('text-generation', modelConfig.id, {
         device: this.device,
-        dtype: this.device === 'webgpu' ? 'q4f16' : 'fp32', // 4-bit 양자화 for WebGPU
-        progress_callback: (progress) => {
-          if (progress.status === 'downloading') {
-            const percent = Math.round((progress.loaded / progress.total) * 60) + 20;
-            this._updateProgress(percent, `다운로드 중... ${Math.round(progress.loaded / 1024 / 1024)}MB`);
-          } else if (progress.status === 'loading') {
-            this._updateProgress(85, '모델 로딩 중...');
+        dtype: this.device === 'webgpu' ? 'q4' : 'fp32',
+        progress_callback: (event) => {
+          if (event.status === 'initiate') {
+            // New file starting to download
+            totalFiles++;
+            fileProgress[event.file] = 0;
+            this._updateProgress(20, `파일 준비 중... (${event.file})`);
+          } else if (event.status === 'progress') {
+            // File download progress (event.progress = 0~100 per file)
+            fileProgress[event.file] = event.progress || 0;
+            const avgProgress = Object.values(fileProgress).reduce((a, b) => a + b, 0) / Math.max(totalFiles, 1);
+            const percent = Math.round(20 + (avgProgress / 100) * 60);
+            const mbLoaded = event.loaded ? Math.round(event.loaded / 1024 / 1024) : 0;
+            const mbTotal = event.total ? Math.round(event.total / 1024 / 1024) : 0;
+            const mbText = mbTotal > 0 ? `${mbLoaded}/${mbTotal}MB` : `${mbLoaded}MB`;
+            this._updateProgress(percent, `다운로드 중... ${Math.round(avgProgress)}% (${mbText})`);
+          } else if (event.status === 'done') {
+            // File finished
+            fileProgress[event.file] = 100;
+            const avgProgress = Object.values(fileProgress).reduce((a, b) => a + b, 0) / Math.max(totalFiles, 1);
+            const percent = Math.round(20 + (avgProgress / 100) * 60);
+            this._updateProgress(percent, `다운로드 완료: ${event.file}`);
+          } else if (event.status === 'ready') {
+            this._updateProgress(85, '모델 초기화 중...');
           }
         }
       });
@@ -169,7 +190,7 @@ class MedDigestLLM {
         this.callbacks.onReady({
           model: modelConfig.name,
           device: this.device,
-          dtype: this.device === 'webgpu' ? 'q4f16' : 'fp32'
+          dtype: this.device === 'webgpu' ? 'q4' : 'fp32'
         });
       }
       
