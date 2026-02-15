@@ -1,12 +1,13 @@
 {
   "name": "meddigest",
+  "version": "1.0.0",
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.9",
-    "@supabase/supabase-js": "^2.95.3",
-    "hono": "^4.11.9"
+    "@hono/node-server": "^1.13.7",
+    "@supabase/supabase-js": "^2.47.10",
+    "hono": "^4.6.14"
   }
 }
