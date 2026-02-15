@@ -1023,6 +1023,24 @@ app.get('/', (c) => {
                   <span class="ml-3 px-2.5 py-1 bg-sage-100 text-sage-700 text-xs font-semibold rounded-full">무료</span>
                   <span class="ml-2 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">WebGPU</span>
                 </h3>
+                
+                <!-- WebGPU 로딩 시간 안내 -->
+                <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-clock text-amber-600"></i>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-amber-800 mb-1">첫 사용 시 AI 모델 로딩 안내</p>
+                      <ul class="text-xs text-amber-700 space-y-1">
+                        <li class="flex items-center"><i class="fas fa-download mr-2 w-4"></i>첫 로딩: 약 <strong>1-3분</strong> 소요 (모델 다운로드 ~400MB)</li>
+                        <li class="flex items-center"><i class="fas fa-hdd mr-2 w-4"></i>이후 사용: 브라우저 캐시로 <strong>10-30초</strong> 내 로딩</li>
+                        <li class="flex items-center"><i class="fas fa-wifi mr-2 w-4"></i>네트워크 속도에 따라 시간이 달라질 수 있습니다</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
                 <div class="p-6 bg-gradient-to-br from-purple-50 via-cream-100 to-blue-50 rounded-xl border border-purple-100">
                   <div class="flex items-center justify-between mb-4">
                     <p class="text-sm text-navy-700/70">이 논문에 대해 궁금한 점을 물어보세요.</p>
@@ -1056,9 +1074,17 @@ app.get('/', (c) => {
                   </div>
                   <div id="ai-response" class="mt-4 hidden"></div>
                   
-                  <div class="mt-4 pt-4 border-t border-purple-100 text-xs text-navy-700/50 flex items-center">
-                    <i class="fas fa-microchip mr-2"></i>
-                    Transformers.js v4 + Qwen2.5-0.5B | 첫 로딩시 약 400MB 다운로드
+                  <div class="mt-4 pt-4 border-t border-purple-100 text-xs text-navy-700/50">
+                    <div class="flex items-center justify-between">
+                      <span class="flex items-center">
+                        <i class="fas fa-microchip mr-2"></i>
+                        Transformers.js v4 + Qwen2.5-0.5B
+                      </span>
+                      <span class="flex items-center text-amber-600">
+                        <i class="fas fa-clock mr-1"></i>
+                        첫 로딩 1-3분
+                      </span>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1104,11 +1130,18 @@ app.get('/', (c) => {
               <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
                 <i class="fas fa-microchip text-2xl text-purple-500"></i>
               </div>
-              <p class="text-sm text-navy-700 mb-4">AI 모델을 먼저 로딩해야 합니다.</p>
+              <p class="text-sm text-navy-700 mb-2">AI 모델을 먼저 로딩해야 합니다.</p>
+              <p class="text-xs text-amber-600 mb-4 flex items-center justify-center">
+                <i class="fas fa-clock mr-1"></i>
+                첫 로딩: 1-3분 | 이후: 10-30초 소요
+              </p>
               <button onclick="startAIModel()" class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition shadow-md">
                 <i class="fas fa-play mr-2"></i>AI 시작하기 (무료)
               </button>
-              <p class="text-xs text-navy-700/50 mt-4">WebGPU 기반 브라우저 실행 (약 300-500MB)</p>
+              <div class="mt-4 text-xs text-navy-700/50 space-y-1">
+                <p><i class="fas fa-download mr-1"></i>모델 크기: 약 400MB (브라우저 캐시 저장)</p>
+                <p><i class="fas fa-shield-alt mr-1"></i>100% 로컬 실행 - 데이터가 서버로 전송되지 않음</p>
+              </div>
             </div>
           </div>
         \`;
