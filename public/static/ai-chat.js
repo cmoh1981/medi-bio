@@ -50,7 +50,7 @@ class MedDigestChat {
           </div>
           <div class="status-content">
             <div class="status-title">AI 분석 준비</div>
-            <div class="status-message">WebGPU 기반 로컬 AI가 이 논문을 분석해 드립니다.</div>
+            <div class="status-message">WebGPU 기반 로컬 AI가 이 논문을 분석해 드립니다. 첫 실행 시 모델 다운로드에 2~5분이 소요됩니다.</div>
           </div>
           <button id="init-model-btn" onclick="window.medChat.initializeModel()" class="init-btn">
             <i class="fas fa-play mr-2"></i>AI 시작
@@ -65,7 +65,7 @@ class MedDigestChat {
           <div id="progress-text" class="progress-text">준비 중...</div>
           <div class="loading-tips">
             <i class="fas fa-info-circle text-blue-400 mr-1"></i>
-            첫 로딩은 모델 다운로드로 인해 시간이 걸릴 수 있습니다. (약 300-500MB)
+            첫 로딩 시 AI 모델 다운로드(약 300~500MB)로 2~5분이 소요됩니다. 진행률(%)이 실시간 표시됩니다. 이후에는 캐시되어 빠르게 로드됩니다.
           </div>
         </div>
         
@@ -151,12 +151,12 @@ class MedDigestChat {
   updateLoadingProgress(percent, message) {
     const progressFill = document.getElementById('progress-fill');
     const progressText = document.getElementById('progress-text');
-    
+
     if (progressFill) {
       progressFill.style.width = `${percent}%`;
     }
     if (progressText) {
-      progressText.textContent = message;
+      progressText.textContent = `${Math.round(percent)}% — ${message}`;
     }
   }
 
