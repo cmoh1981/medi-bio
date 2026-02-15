@@ -2,5 +2,15 @@
   "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/scrape",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/newsletter",
+      "schedule": "0 23 * * *"
+    }
   ]
 }
