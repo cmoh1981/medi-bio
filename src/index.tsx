@@ -9,6 +9,18 @@ type Bindings = {
   KAKAO_CLIENT_SECRET: string
   APP_NAME: string
   APP_ENV: string
+  CRON_SECRET?: string
+}
+
+// Cloudflare Workers types
+interface ScheduledEvent {
+  cron: string
+  scheduledTime: number
+}
+
+interface ExecutionContext {
+  waitUntil(promise: Promise<any>): void
+  passThroughOnException(): void
 }
 
 type Variables = {
@@ -897,4 +909,126 @@ app.get('/', (c) => {
   `)
 })
 
-export default app
+// ===== Cron Job Handler =====
+
+const CRON_TOPICS = {
+  cardiovascular: { koreanName: '심혈관', searchTerms: ['cardiovascular disease', 'heart failure SGLT2'] },
+  endocrine: { koreanName: '내분비', searchTerms: ['GLP-1 agonist obesity', 'tirzepatide semaglutide'] },
+  aging: { koreanName: '노화', searchTerms: ['aging longevity senolytic', 'NAD healthspan'] },
+  diabetes: { koreanName: '당뇨', searchTerms: ['diabetes CGM insulin', 'diabetic kidney'] }
+};
+
+async function searchPubMedForCron(query: string) {
+  const year = new Date().getFullYear();
+  const searchQuery = `${query} AND (${year}[pdat] OR ${year - 1}[pdat])`;
+  
+  try {
+    const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(searchQuery)}&retmax=2&sort=date&retmode=json`;
+    const res = await fetch(url);
+    const data = await res.json() as { esearchresult?: { idlist?: string[] } };
+    const pmids = data.esearchresult?.idlist || [];
+    
+    if (pmids.length === 0) return [];
+    
+    const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=xml`;
+    const fetchRes = await fetch(fetchUrl);
+    const xml = await fetchRes.text();
+    
+    const articles: Array<{pmid: string, title: string, journal: string, abstract: string, doi: string | null}> = [];
+    const blocks = xml.match(/<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g) || [];
+    
+    for (const block of blocks) {
+      const pmid = block.match(/<PMID[^>]*>(\d+)<\/PMID>/)?.[1];
+      const title = block.match(/<ArticleTitle>([^<]+)<\/ArticleTitle>/)?.[1];
+      const journal = block.match(/<Title>([^<]+)<\/Title>/)?.[1];
+      const abstractMatch = block.match(/<AbstractText[^>]*>([^<]+)<\/AbstractText>/g);
+      const doi = block.match(/<ArticleId IdType="doi">([^<]+)<\/ArticleId>/)?.[1];
+      
+      const abstract = abstractMatch?.map(m => m.match(/>([^<]+)</)?.[1] || '').join(' ') || '';
+      
+      if (pmid && title && abstract.length > 100) {
+        articles.push({ pmid, title, journal: journal || 'Unknown', abstract, doi: doi || null });
+      }
+    }
+    return articles;
+  } catch (e) {
+    console.error('PubMed error:', e);
+    return [];
+  }
+}
+
+function generateCronSlug(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).slice(0, 4).join('-') + '-' + Date.now().toString(36);
+}
+
+async function handleCronJob(env: Bindings) {
+  console.log('🔬 MedDigest Cron Started:', new Date().toISOString());
+  let saved = 0;
+  
+  for (const [, topic] of Object.entries(CRON_TOPICS)) {
+    const term = topic.searchTerms[Math.floor(Math.random() * topic.searchTerms.length)];
+    const articles = await searchPubMedForCron(term);
+    
+    for (const article of articles) {
+      // 중복 체크
+      const exists = await env.DB.prepare('SELECT id FROM articles WHERE pmid = ?').bind(article.pmid).first();
+      if (exists) continue;
+      
+      // 간단 요약 생성 (AI 없이)
+      const slug = generateCronSlug(article.title);
+      const tier = Math.random() > 0.5 ? 'pro' : 'basic';
+      const keyMessages = JSON.stringify([
+        article.abstract.substring(0, 80) + '...',
+        `저널: ${article.journal}`,
+        `PMID: ${article.pmid}`
+      ]);
+      
+      try {
+        await env.DB.prepare(`
+          INSERT INTO articles (slug, title, original_title, journal, doi, pmid, topic, tier, key_messages, clinical_insight, published_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          slug,
+          article.title.substring(0, 100),
+          article.title,
+          article.journal,
+          article.doi,
+          article.pmid,
+          topic.koreanName,
+          tier,
+          keyMessages,
+          '최신 연구입니다. 상세 내용은 원문을 참조하세요.',
+          new Date().toISOString().split('T')[0]
+        ).run();
+        saved++;
+        console.log('✅ Saved:', article.title.substring(0, 50));
+      } catch (e) {
+        console.error('DB error:', e);
+      }
+    }
+  }
+  
+  console.log(`🎉 Cron Completed: ${saved} articles saved`);
+  return { saved };
+}
+
+// Manual cron trigger endpoint
+app.post('/api/cron/trigger', async (c) => {
+  const auth = c.req.header('Authorization');
+  const secret = c.env.CRON_SECRET || 'dev-secret';
+  
+  if (auth !== `Bearer ${secret}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  
+  const result = await handleCronJob(c.env);
+  return c.json(result);
+});
+
+// Export with scheduled handler for Cloudflare Workers
+export default {
+  fetch: app.fetch,
+  scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
+    ctx.waitUntil(handleCronJob(env));
+  }
+}

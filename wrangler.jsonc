@@ -10,9 +10,21 @@
     {
       "binding": "DB",
       "database_name": "meddigest-db",
-      "database_id": "placeholder-id"
+      "database_id": "placeholder-will-be-updated-after-creation"
     }
   ],
+  
+  // Cloudflare Workers AI (optional - for AI summaries)
+  // "ai": {
+  //   "binding": "AI"
+  // },
+  
+  // Cron Triggers - 매일 오전 6시 KST (21:00 UTC 전날)
+  "triggers": {
+    "crons": [
+      "0 21 * * *"
+    ]
+  },
   
   // Environment variables (set via wrangler secret for production)
   "vars": {
