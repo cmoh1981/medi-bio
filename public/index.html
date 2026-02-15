@@ -41,24 +41,44 @@
     .source-biorxiv { background: #fef3c7; color: #92400e; }
     .source-medrxiv { background: #ede9fe; color: #5b21b6; }
     .source-ct { background: #d1fae5; color: #065f46; }
+
+    /* Mobile Hamburger Menu */
+    #mobile-menu { display: none; }
+    #mobile-menu.active { display: block; }
+
+    /* Hide scrollbar for topic filter */
+    .topic-filter-container {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    .topic-filter-container::-webkit-scrollbar {
+      display: none; /* Chrome/Safari/Opera */
+    }
   </style>
 </head>
 <body class="min-h-screen">
 
   <!-- Header -->
   <header class="bg-white/80 backdrop-blur-sm border-b border-primary-200/50 sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-6 py-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4">
       <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3 sm:space-x-4">
           <div class="w-10 h-10 bg-gradient-to-br from-sage-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
             <i class="fas fa-book-medical text-white text-lg"></i>
           </div>
           <div>
-            <h1 class="text-xl font-serif font-semibold text-navy-800">PaperMind</h1>
+            <h1 class="text-lg sm:text-xl font-serif font-semibold text-navy-800">PaperMind</h1>
             <p class="text-xs text-sage-600 font-medium" data-i18n="subtitle">무료 Med-Bio 인사이트</p>
           </div>
         </div>
-        <nav id="nav-area" class="flex items-center space-x-3">
+
+        <!-- Hamburger Button (Mobile Only) -->
+        <button onclick="toggleMobileMenu()" class="md:hidden w-10 h-10 flex items-center justify-center text-navy-700 hover:bg-primary-50 rounded-lg">
+          <i class="fas fa-bars text-xl"></i>
+        </button>
+
+        <!-- Desktop Nav -->
+        <nav id="nav-area" class="hidden md:flex items-center space-x-3">
           <!-- Language Toggle -->
           <button onclick="toggleLang()" class="lang-toggle px-3 py-1.5 border border-primary-200 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50 flex items-center gap-1.5">
             <i class="fas fa-globe text-xs"></i>
@@ -68,46 +88,56 @@
           <button onclick="openAuthModal('signup')" class="px-5 py-2.5 btn-warm text-white rounded-xl text-sm font-medium" data-i18n="signup">무료 회원가입</button>
         </nav>
       </div>
+
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="md:hidden mt-4 pb-4 space-y-2">
+        <button onclick="toggleLang()" class="w-full px-4 py-2.5 border border-primary-200 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50 flex items-center justify-center gap-2">
+          <i class="fas fa-globe"></i>
+          <span id="lang-label-mobile">EN</span>
+        </button>
+        <button onclick="openAuthModal('login')" class="w-full px-4 py-2.5 text-sm text-primary-700 hover:bg-primary-50 rounded-lg border border-primary-200" data-i18n="login">로그인</button>
+        <button onclick="openAuthModal('signup')" class="w-full px-5 py-2.5 btn-warm text-white rounded-xl text-sm font-medium" data-i18n="signup">무료 회원가입</button>
+      </div>
     </div>
   </header>
 
   <!-- Hero -->
   <section class="relative overflow-hidden">
     <div class="absolute inset-0 elegant-gradient"></div>
-    <div class="relative max-w-6xl mx-auto px-6 py-16">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-16">
       <div class="max-w-3xl">
         <div class="inline-flex items-center px-3 py-1 bg-sage-100 text-sage-700 rounded-full text-xs font-semibold mb-4">
           <i class="fas fa-gift mr-2"></i><span data-i18n="freeService">100% 무료 서비스</span>
         </div>
-        <h2 class="font-serif text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-6" data-i18n="heroTitle">
+        <h2 class="font-serif text-2xl sm:text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-4 md:mb-6" data-i18n="heroTitle">
           매일 한 편의 논문이<br><span class="text-primary-700">임상의 통찰</span>로 다가옵니다
         </h2>
-        <p class="text-lg text-navy-700/80 mb-2" data-i18n="heroDesc">
+        <p class="text-base sm:text-lg text-navy-700/80 mb-2" data-i18n="heroDesc">
           바쁜 임상의, 연구자를 위해 엄선된 Med-Bio 논문을 전문가 시각으로 해설해 드립니다.
         </p>
-        <p class="text-base text-purple-600/90 mb-4 font-medium" data-i18n="heroAI">
+        <p class="text-sm sm:text-base text-purple-600/90 mb-4 font-medium" data-i18n="heroAI">
           <i class="fas fa-brain mr-1"></i>무료 회원가입 후, 브라우저 내 AI로 논문의 한계점·임상 적용·비교 분석까지 즉시 질문하세요.
         </p>
-        <p class="text-sm text-sage-600 mb-8">
+        <p class="text-xs sm:text-sm text-sage-600 mb-6 md:mb-8">
           <i class="fas fa-link mr-1"></i><span data-i18n="poweredBy">Powered by</span> <a href="https://longevity-lab.io" target="_blank" class="text-primary-600 hover:underline font-medium">Longevity Lab</a>
         </p>
-        <div class="flex flex-wrap gap-8">
+        <div class="flex flex-wrap gap-4 md:gap-8">
           <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
-              <i class="fas fa-clock text-sage-600 text-lg"></i>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
+              <i class="fas fa-clock text-sage-600 text-base sm:text-lg"></i>
             </div>
             <div>
-              <div class="text-2xl font-serif font-semibold text-navy-800" data-i18n="readTime">5분</div>
-              <div class="text-sm text-navy-700/60" data-i18n="readTimeLabel">읽기 시간</div>
+              <div class="text-xl sm:text-2xl font-serif font-semibold text-navy-800" data-i18n="readTime">5분</div>
+              <div class="text-xs sm:text-sm text-navy-700/60" data-i18n="readTimeLabel">읽기 시간</div>
             </div>
           </div>
           <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
-              <i class="fas fa-calendar-check text-sage-600 text-lg"></i>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
+              <i class="fas fa-calendar-check text-sage-600 text-base sm:text-lg"></i>
             </div>
             <div>
-              <div class="text-2xl font-serif font-semibold text-navy-800" data-i18n="dailyUpdate">매일</div>
-              <div class="text-sm text-navy-700/60" data-i18n="newContent">새 콘텐츠</div>
+              <div class="text-xl sm:text-2xl font-serif font-semibold text-navy-800" data-i18n="dailyUpdate">매일</div>
+              <div class="text-xs sm:text-sm text-navy-700/60" data-i18n="newContent">새 콘텐츠</div>
             </div>
           </div>
         </div>
@@ -117,25 +147,25 @@
 
   <!-- Topic Filter -->
   <section class="bg-white border-y border-primary-100">
-    <div class="max-w-6xl mx-auto px-6 py-5">
-      <div class="flex items-center space-x-3 overflow-x-auto">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5">
+      <div class="flex items-center space-x-3 overflow-x-auto topic-filter-container flex-nowrap">
         <span class="text-navy-700/60 text-sm font-medium whitespace-nowrap"><i class="fas fa-filter mr-2"></i><span data-i18n="topicLabel">주제</span></span>
-        <div class="h-6 w-px bg-primary-200"></div>
-        <button onclick="filterTopic('')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium active" data-topic="" data-i18n="topicAll">전체</button>
-        <button onclick="filterTopic('노화')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="노화" data-i18n="topicAging">노화</button>
-        <button onclick="filterTopic('신경과학')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="신경과학" data-i18n="topicNeuro">신경과학</button>
-        <button onclick="filterTopic('암')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="암" data-i18n="topicCancer">암</button>
-        <button onclick="filterTopic('대사')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="대사" data-i18n="topicMetabolism">대사</button>
-        <button onclick="filterTopic('심혈관')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="심혈관" data-i18n="topicCardio">심혈관</button>
-        <button onclick="filterTopic('감염/면역')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium" data-topic="감염/면역" data-i18n="topicInfection">감염/면역</button>
+        <div class="h-6 w-px bg-primary-200 flex-shrink-0"></div>
+        <button onclick="filterTopic('')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium active whitespace-nowrap" data-topic="" data-i18n="topicAll">전체</button>
+        <button onclick="filterTopic('노화')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="노화" data-i18n="topicAging">노화</button>
+        <button onclick="filterTopic('신경과학')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="신경과학" data-i18n="topicNeuro">신경과학</button>
+        <button onclick="filterTopic('암')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="암" data-i18n="topicCancer">암</button>
+        <button onclick="filterTopic('대사')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="대사" data-i18n="topicMetabolism">대사</button>
+        <button onclick="filterTopic('심혈관')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="심혈관" data-i18n="topicCardio">심혈관</button>
+        <button onclick="filterTopic('감염/면역')" class="topic-btn topic-filter px-4 sm:px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-topic="감염/면역" data-i18n="topicInfection">감염/면역</button>
       </div>
     </div>
   </section>
 
   <!-- Articles -->
-  <main class="max-w-6xl mx-auto px-6 py-10">
-    <div id="articles-container" class="grid md:grid-cols-2 gap-6">
-      <div class="col-span-2 text-center py-16">
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-10">
+    <div id="articles-container" class="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      <div class="col-span-full text-center py-12 sm:py-16">
         <div class="animate-pulse">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-sage-100"></div>
           <p class="text-navy-700/60" data-i18n="loading">논문을 불러오는 중...</p>
@@ -145,15 +175,15 @@
   </main>
 
   <!-- Newsletter -->
-  <section class="relative overflow-hidden py-16">
+  <section class="relative overflow-hidden py-12 md:py-16">
     <div class="absolute inset-0 warm-gradient opacity-95"></div>
-    <div class="relative max-w-4xl mx-auto px-6 text-center">
-      <h3 class="font-serif text-3xl font-semibold text-white mb-4" data-i18n="newsletterTitle">매일 아침, 최신 논문을 받아보세요</h3>
-      <p class="text-white/80 text-lg mb-8" data-i18n="newsletterDesc">새로운 논문 요약이 업데이트되면 이메일로 알려드립니다.</p>
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      <h3 class="font-serif text-2xl sm:text-3xl font-semibold text-white mb-3 sm:mb-4" data-i18n="newsletterTitle">매일 아침, 최신 논문을 받아보세요</h3>
+      <p class="text-white/80 text-base sm:text-lg mb-6 sm:mb-8" data-i18n="newsletterDesc">새로운 논문 요약이 업데이트되면 이메일로 알려드립니다.</p>
       <div id="newsletter-form-container">
         <form onsubmit="handleNewsletterSubscribe(event)" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input type="email" id="newsletter-email" placeholder="Email" required class="flex-1 px-5 py-3.5 rounded-xl text-navy-800 focus:outline-none">
-          <button type="submit" class="px-8 py-3.5 bg-white text-primary-700 rounded-xl font-semibold hover:bg-cream-100" data-i18n="subscribe">구독하기</button>
+          <input type="email" id="newsletter-email" placeholder="Email" required class="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl text-navy-800 focus:outline-none text-sm sm:text-base">
+          <button type="submit" class="px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-primary-700 rounded-xl font-semibold hover:bg-cream-100 text-sm sm:text-base" data-i18n="subscribe">구독하기</button>
         </form>
       </div>
       <div id="newsletter-success" class="hidden">
@@ -166,39 +196,39 @@
   </section>
 
   <!-- WebGPU Feature Banner -->
-  <section class="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 py-12">
-    <div class="max-w-6xl mx-auto px-6">
-      <div class="flex flex-col md:flex-row items-center gap-8">
+  <section class="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 py-10 md:py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="flex flex-col md:flex-row items-center gap-6 md:gap-8">
         <div class="flex-1">
           <div class="inline-flex items-center px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold mb-4 border border-purple-500/30">
             <i class="fas fa-brain mr-2"></i>Llama 3.3 70B AI
           </div>
-          <h3 class="font-serif text-2xl md:text-3xl font-semibold text-white mb-4" data-i18n="webgpuTitle">
+          <h3 class="font-serif text-xl sm:text-2xl md:text-3xl font-semibold text-white mb-3 sm:mb-4" data-i18n="webgpuTitle">
             Llama 3.3 70B 기반<br><span class="text-purple-300">AI 논문 분석</span>
           </h3>
-          <p class="text-white/70 mb-4" data-i18n="webgpuDesc">Llama 3.3 70B 모델이 논문의 한계점, 임상 적용, 비교 분석을 즉시 답변해 드립니다. 다운로드 없이 바로 사용 가능합니다.</p>
-          <div class="flex items-start gap-2 mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <i class="fas fa-lock text-blue-400 mt-0.5"></i>
-            <p class="text-blue-200/90 text-sm" data-i18n="loginRequired">AI 분석 기능은 로그인 후 사용할 수 있습니다. 무료 회원가입 후 이용해 주세요.</p>
+          <p class="text-white/70 mb-4 text-sm sm:text-base" data-i18n="webgpuDesc">Llama 3.3 70B 모델이 논문의 한계점, 임상 적용, 비교 분석을 즉시 답변해 드립니다. 다운로드 없이 바로 사용 가능합니다.</p>
+          <div class="flex items-start gap-2 mb-4 sm:mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+            <i class="fas fa-lock text-blue-400 mt-0.5 flex-shrink-0"></i>
+            <p class="text-blue-200/90 text-xs sm:text-sm" data-i18n="loginRequired">AI 분석 기능은 로그인 후 사용할 수 있습니다. 무료 회원가입 후 이용해 주세요.</p>
           </div>
-          <div class="flex flex-wrap gap-4">
-            <div class="flex items-center gap-2 text-sm text-white/60">
+          <div class="flex flex-wrap gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 text-xs sm:text-sm text-white/60">
               <i class="fas fa-bolt text-yellow-400"></i> Instant Response
             </div>
-            <div class="flex items-center gap-2 text-sm text-white/60">
+            <div class="flex items-center gap-2 text-xs sm:text-sm text-white/60">
               <i class="fas fa-brain text-purple-400"></i> Llama 3.3 70B
             </div>
-            <div class="flex items-center gap-2 text-sm text-white/60">
+            <div class="flex items-center gap-2 text-xs sm:text-sm text-white/60">
               <i class="fas fa-language text-blue-400"></i> Bilingual KO/EN
             </div>
           </div>
         </div>
-        <div class="w-48 h-48 relative">
+        <div class="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 relative hidden sm:block">
           <div class="absolute inset-0 bg-purple-500/20 rounded-3xl rotate-6"></div>
           <div class="absolute inset-0 bg-indigo-500/20 rounded-3xl -rotate-3"></div>
           <div class="relative bg-gradient-to-br from-purple-600 to-indigo-600 rounded-3xl flex items-center justify-center h-full shadow-2xl">
             <div class="text-center">
-              <i class="fas fa-brain text-5xl text-white/90 mb-2"></i>
+              <i class="fas fa-brain text-4xl sm:text-5xl text-white/90 mb-2"></i>
               <p class="text-white/70 text-xs font-medium">On-Device AI</p>
             </div>
           </div>
@@ -253,9 +283,9 @@
   </div>
 
   <!-- Article Modal -->
-  <div id="article-modal" class="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4" style="display:none;">
-    <div class="min-h-full flex items-start justify-center py-8">
-      <div id="article-modal-content" class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full relative"></div>
+  <div id="article-modal" class="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-0 sm:p-4" style="display:none;">
+    <div class="min-h-full flex items-start justify-center sm:py-8">
+      <div id="article-modal-content" class="bg-white sm:rounded-2xl shadow-2xl max-w-3xl w-full relative min-h-screen sm:min-h-0"></div>
     </div>
   </div>
 
@@ -386,7 +416,10 @@
         const text = t(key);
         if (text) el.innerHTML = text;
       });
-      document.getElementById('lang-label').textContent = currentLang === 'ko' ? 'EN' : 'KO';
+      const langLabel = currentLang === 'ko' ? 'EN' : 'KO';
+      document.getElementById('lang-label').textContent = langLabel;
+      const mobileLangLabel = document.getElementById('lang-label-mobile');
+      if (mobileLangLabel) mobileLangLabel.textContent = langLabel;
       document.documentElement.setAttribute('data-lang', currentLang);
     }
 
@@ -504,6 +537,21 @@
         <span class="text-sm text-navy-700"><i class="fas fa-user-circle mr-1 text-sage-600"></i>${user.nickname || user.email}</span>
         <button onclick="handleLogout()" class="px-4 py-2 text-sm text-primary-700 hover:bg-primary-50 rounded-lg">${t('logout')}</button>
       `;
+
+      // Update mobile menu for logged-in user
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu) {
+        mobileMenu.innerHTML = `
+          <button onclick="toggleLang()" class="w-full px-4 py-2.5 border border-primary-200 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50 flex items-center justify-center gap-2">
+            <i class="fas fa-globe"></i>
+            <span id="lang-label-mobile">${currentLang === 'ko' ? 'EN' : 'KO'}</span>
+          </button>
+          <div class="w-full px-4 py-2.5 text-sm text-navy-700 border border-primary-200 rounded-lg text-center">
+            <i class="fas fa-user-circle mr-1 text-sage-600"></i>${user.nickname || user.email}
+          </div>
+          <button onclick="handleLogout()" class="w-full px-4 py-2.5 text-sm text-primary-700 hover:bg-primary-50 rounded-lg border border-primary-200">${t('logout')}</button>
+        `;
+      }
     }
 
     async function handleLogout() {
@@ -551,7 +599,7 @@
         const data = await res.json();
 
         if (!data.articles || !data.articles.length) {
-          container.innerHTML = `<div class="col-span-2 text-center py-16"><p class="text-navy-700/60">${t('noArticles')}</p></div>`;
+          container.innerHTML = `<div class="col-span-full text-center py-12 sm:py-16"><p class="text-navy-700/60">${t('noArticles')}</p></div>`;
           return;
         }
 
@@ -590,7 +638,7 @@
         `;
         }).join('');
       } catch (e) {
-        container.innerHTML = `<div class="col-span-2 text-center py-16"><p class="text-red-500">${t('errorLoad')}</p></div>`;
+        container.innerHTML = `<div class="col-span-full text-center py-12 sm:py-16"><p class="text-red-500">${t('errorLoad')}</p></div>`;
       }
     }
 
@@ -627,20 +675,20 @@
 
         content.innerHTML = `
           <div class="relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors"><i class="fas fa-times text-navy-700"></i></button>
+            <button onclick="closeModal()" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors"><i class="fas fa-times text-navy-700 text-lg"></i></button>
 
             <!-- Header -->
-            <div class="warm-gradient p-8 rounded-t-2xl">
-              <div class="flex items-center gap-3 mb-4">
-                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">${topicLabel}</span>
+            <div class="warm-gradient p-6 sm:p-8 sm:rounded-t-2xl">
+              <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-xs sm:text-sm font-medium">${topicLabel}</span>
                 <span class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs">${article.source}</span>
                 ${article.original_url ? `<a href="${article.original_url}" target="_blank" rel="noopener" class="px-3 py-1 bg-white/10 text-white/80 rounded-full text-xs hover:bg-white/20 transition-colors"><i class="fas fa-external-link-alt mr-1"></i>${t('readOriginal')}</a>` : ''}
               </div>
-              <p class="text-white/70 text-sm">${article.published_at}</p>
-              <h2 class="font-serif text-2xl font-semibold text-white mt-2 leading-snug">${title}</h2>
+              <p class="text-white/70 text-xs sm:text-sm">${article.published_at}</p>
+              <h2 class="font-serif text-xl sm:text-2xl font-semibold text-white mt-2 leading-snug">${title}</h2>
             </div>
 
-            <div class="p-8">
+            <div class="p-6 sm:p-8">
               <!-- Key Messages -->
               <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4"><i class="fas fa-key text-sage-500 mr-2"></i>${t('keyMessages')}</h3>
               <div class="space-y-3 mb-8">
@@ -721,6 +769,14 @@
           }
         }
       } catch(e) {}
+    }
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) {
+        menu.classList.toggle('active');
+      }
     }
 
     // Init
