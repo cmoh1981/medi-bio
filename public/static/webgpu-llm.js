@@ -2,28 +2,28 @@
  * MedDigest WebGPU LLM Module
  * Transformers.js v4 기반 브라우저 내 LLM 추론 시스템
  * 
- * 지원 모델: Qwen2.5-0.5B-Instruct (의료 문헌 분석 최적화)
- * 백업 모델: SmolLM2-360M-Instruct (경량화 버전)
+ * 지원 모델: SmolLM2-360M-Instruct (의료 문헌 분석용)
+ * 백업 모델: SmolLM2-135M-Instruct (초경량 버전)
  */
 
 // CDN에서 Transformers.js 로드
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@latest';
 
-// 모델 설정
+// 모델 설정 (브라우저 메모리 제약을 고려한 경량 모델)
 const MODEL_CONFIG = {
   primary: {
-    id: 'onnx-community/Qwen2.5-0.5B-Instruct',
-    name: 'Qwen2.5-0.5B',
-    description: '의료 문헌 분석용 (500M 파라미터)',
-    size: '~400MB',
-    minVRAM: 2048
-  },
-  fallback: {
     id: 'HuggingFaceTB/SmolLM2-360M-Instruct',
     name: 'SmolLM2-360M',
-    description: '경량화 버전 (360M 파라미터)',
-    size: '~280MB',
-    minVRAM: 1024
+    description: '의료 문헌 분석용 (360M 파라미터)',
+    size: '~200MB',
+    minVRAM: 512
+  },
+  fallback: {
+    id: 'HuggingFaceTB/SmolLM2-135M-Instruct',
+    name: 'SmolLM2-135M',
+    description: '초경량 버전 (135M 파라미터)',
+    size: '~80MB',
+    minVRAM: 256
   }
 };
 
@@ -150,7 +150,7 @@ class MedDigestLLM {
 
       this.pipeline = await pipeline('text-generation', modelConfig.id, {
         device: this.device,
-        dtype: this.device === 'webgpu' ? 'q4' : 'fp32',
+        dtype: this.device === 'webgpu' ? 'q4f16' : 'q4',
         progress_callback: (event) => {
           if (event.status === 'initiate') {
             // New file starting to download
@@ -190,7 +190,7 @@ class MedDigestLLM {
         this.callbacks.onReady({
           model: modelConfig.name,
           device: this.device,
-          dtype: this.device === 'webgpu' ? 'q4' : 'fp32'
+          dtype: this.device === 'webgpu' ? 'q4f16' : 'q4'
         });
       }
       
@@ -200,8 +200,17 @@ class MedDigestLLM {
       this.isLoading = false;
       this.isReady = false;
 
-      // Ensure error is always an Error object with a message
-      const err = error instanceof Error ? error : new Error(String(error || 'Unknown error'));
+      // Detect memory-related errors and provide friendly message
+      let err;
+      if (typeof error === 'number' || (typeof error === 'string' && /^\d+$/.test(error))) {
+        const bytes = Number(error);
+        const mb = Math.round(bytes / 1024 / 1024);
+        err = new Error(`메모리 부족 (${mb}MB 필요). 브라우저 탭을 닫고 다시 시도하세요.`);
+      } else if (error instanceof Error) {
+        err = error;
+      } else {
+        err = new Error(String(error || 'Unknown error'));
+      }
       console.error('Model initialization failed:', err);
 
       // Fallback 시도

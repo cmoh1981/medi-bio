@@ -65,7 +65,7 @@ class MedDigestChat {
           <div id="progress-text" class="progress-text">준비 중...</div>
           <div class="loading-tips">
             <i class="fas fa-info-circle text-blue-400 mr-1"></i>
-            첫 로딩 시 AI 모델 다운로드(약 2GB)로 5~10분이 소요될 수 있습니다. 진행률(%)이 실시간 표시됩니다. 이후에는 캐시되어 빠르게 로드됩니다.
+            첫 로딩 시 AI 모델 다운로드(약 200MB)로 1~3분이 소요될 수 있습니다. 진행률(%)이 실시간 표시됩니다. 이후에는 캐시되어 빠르게 로드됩니다.
           </div>
         </div>
         
