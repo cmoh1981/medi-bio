@@ -173,6 +173,58 @@ npm run deploy:prod
 - [ ] Kakao OAuth 시크릿 설정
 - [ ] Cloudflare Pages 배포
 
+## 🤖 Content Automation System
+
+### 자동 콘텐츠 생성 스크립트
+
+MedDigest는 고품질 의학 논문 데이터베이스를 기반으로 콘텐츠를 자동 생성합니다.
+
+#### 사용법
+```bash
+# 모든 주제 각 1편씩 생성
+node scripts/auto-generate.cjs
+
+# 특정 주제로 3편 생성
+node scripts/auto-generate.cjs --topic 심혈관 --count 3
+
+# 모든 주제 각 5편씩 생성 + 바로 DB에 import
+node scripts/auto-generate.cjs --all --count 5 --import
+```
+
+#### 지원 주제
+- **심혈관** (5편): SGLT2i, 심방세동, 고혈압 RNA 치료제 등
+- **내분비** (5편): Tirzepatide, Retatrutide, GLP-1 등
+- **노화** (5편): Senolytic, NMN, TAME, Rapamycin 등
+- **당뇨** (5편): CGM, 인공췌장, 줄기세포 췌도 이식 등
+
+#### 출력 파일
+- `generated-{timestamp}.sql` - D1 데이터베이스 INSERT 문
+- `generated-{timestamp}.json` - 생성된 논문 데이터 (JSON)
+
+#### Cloudflare Cron 자동화 (배포 후)
+```jsonc
+// wrangler.jsonc
+{
+  "triggers": {
+    "crons": ["0 21 * * *"]  // 매일 오전 6시 KST
+  }
+}
+```
+
+#### 수동 Cron 트리거
+```bash
+curl -X POST "https://your-domain.pages.dev/api/cron/trigger" \
+  -H "Authorization: Bearer your-cron-secret"
+```
+
+### 현재 콘텐츠 현황
+- **총 논문 수**: 40편
+- **주제별 분포**:
+  - 심혈관: 10편 (basic: 5, pro: 5)
+  - 내분비: 10편 (basic: 6, pro: 4)
+  - 노화: 10편 (basic: 3, pro: 7)
+  - 당뇨: 10편 (basic: 3, pro: 7)
+
 ## 📋 Progress (MVP 2주 계획)
 
 ### Week 1 ✅
@@ -181,7 +233,8 @@ npm run deploy:prod
 - [x] D1 데이터베이스 스키마
 - [x] 기본 UI 구현
 - [x] **WebGPU LLM 통합 (Transformers.js v4)**
-- [ ] 실제 논문 5편 요약 작성
+- [x] **콘텐츠 자동화 시스템 구축**
+- [x] **실제 논문 40편 요약 작성**
 
 ### Week 2
 - [ ] Cloudflare 배포
