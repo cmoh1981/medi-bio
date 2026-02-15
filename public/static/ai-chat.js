@@ -671,5 +671,6 @@ document.head.appendChild(chatStyles);
 
 // 글로벌 인스턴스
 window.MedDigestChat = MedDigestChat;
+window.PaperMindChat = MedDigestChat;
 
-console.log('MedDigest AI Chat UI loaded');
+console.log('PaperMind AI Chat UI loaded');
