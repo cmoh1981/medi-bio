@@ -1,21 +1,12 @@
 {
   "name": "meddigest",
-  "type": "module",
   "scripts": {
-    "dev": "node --watch api/index.js",
-    "build": "echo 'No build step needed for Vercel'",
-    "start": "node api/index.js",
-    "vercel-build": "echo 'Build complete'"
+    "dev": "node server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@supabase/supabase-js": "^2.95.3",
     "hono": "^4.11.9"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
