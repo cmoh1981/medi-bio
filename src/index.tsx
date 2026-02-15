@@ -416,47 +416,170 @@ app.get('/', (c) => {
       theme: {
         extend: {
           colors: {
-            primary: '#0066CC',
-            secondary: '#00A86B',
-            accent: '#FF6B35'
+            // 따뜻하고 지적인 색상 팔레트
+            primary: {
+              50: '#faf7f5',
+              100: '#f5ede8',
+              200: '#e8d5c8',
+              300: '#d4b69e',
+              400: '#c49a7a',
+              500: '#b07d56',
+              600: '#9a6642',
+              700: '#7d5236',
+              800: '#5f3f2a',
+              900: '#4a3121',
+              DEFAULT: '#7d5236'
+            },
+            sage: {
+              50: '#f6f7f6',
+              100: '#e3e7e3',
+              200: '#c7d0c7',
+              300: '#a3b3a3',
+              400: '#7d917d',
+              500: '#5f7360',
+              600: '#4a5c4b',
+              700: '#3d4a3e',
+              800: '#333d34',
+              900: '#2b332c',
+              DEFAULT: '#5f7360'
+            },
+            cream: {
+              50: '#fefdfb',
+              100: '#fcf9f4',
+              200: '#f9f3ea',
+              300: '#f5ebdb',
+              400: '#efe0c9',
+              DEFAULT: '#fcf9f4'
+            },
+            navy: {
+              700: '#2c3e50',
+              800: '#1e2a36',
+              900: '#141d24',
+              DEFAULT: '#2c3e50'
+            }
+          },
+          fontFamily: {
+            'serif': ['Noto Serif KR', 'Georgia', 'serif'],
+            'sans': ['Pretendard', 'Noto Sans KR', 'system-ui', 'sans-serif']
           }
         }
       }
     }
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-    body { font-family: 'Noto Sans KR', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #0066CC 0%, #00A86B 100%); }
-    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
-    .tier-badge-basic { background: #E3F2FD; color: #1976D2; }
-    .tier-badge-pro { background: #FFF3E0; color: #F57C00; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+    
+    body { 
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background-color: #fcf9f4;
+    }
+    
+    .font-serif { font-family: 'Noto Serif KR', Georgia, serif; }
+    
+    /* 따뜻한 그라데이션 */
+    .warm-gradient { 
+      background: linear-gradient(135deg, #5f7360 0%, #7d5236 50%, #9a6642 100%); 
+    }
+    
+    .elegant-gradient {
+      background: linear-gradient(180deg, #f6f7f6 0%, #fcf9f4 100%);
+    }
+    
+    /* 부드러운 카드 스타일 */
+    .card-elegant { 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(125, 82, 54, 0.06), 0 1px 3px rgba(125, 82, 54, 0.1);
+    }
+    .card-elegant:hover { 
+      transform: translateY(-3px); 
+      box-shadow: 0 12px 32px rgba(125, 82, 54, 0.12), 0 4px 12px rgba(125, 82, 54, 0.08);
+    }
+    
+    /* 티어 배지 */
+    .tier-badge-basic { 
+      background: linear-gradient(135deg, #e3e7e3 0%, #c7d0c7 100%); 
+      color: #4a5c4b; 
+    }
+    .tier-badge-pro { 
+      background: linear-gradient(135deg, #f5ebdb 0%, #e8d5c8 100%); 
+      color: #7d5236; 
+    }
+    
+    /* 구분선 */
+    .divider-warm {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, #d4b69e 50%, transparent 100%);
+    }
+    
+    /* 버튼 스타일 */
+    .btn-warm {
+      background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-warm:hover {
+      background: linear-gradient(135deg, #5f3f2a 0%, #7d5236 100%);
+      transform: translateY(-1px);
+    }
+    
+    .btn-sage {
+      background: linear-gradient(135deg, #5f7360 0%, #7d917d 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-sage:hover {
+      background: linear-gradient(135deg, #4a5c4b 0%, #5f7360 100%);
+    }
+    
+    /* 토픽 필터 버튼 */
+    .topic-filter {
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .topic-filter:hover {
+      border-color: #d4b69e;
+      background: #faf7f5;
+    }
+    .topic-filter.active {
+      background: linear-gradient(135deg, #7d5236 0%, #9a6642 100%);
+      color: white;
+      border-color: transparent;
+    }
+    
+    /* 인용문 스타일 */
+    .quote-mark {
+      font-family: Georgia, serif;
+      font-size: 4rem;
+      line-height: 1;
+      opacity: 0.15;
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
   <!-- Header -->
-  <header class="gradient-bg text-white shadow-lg">
-    <div class="max-w-6xl mx-auto px-4 py-4">
+  <header class="bg-white/80 backdrop-blur-sm border-b border-primary-200/50 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-6 py-4">
       <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-          <i class="fas fa-flask text-2xl"></i>
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 bg-gradient-to-br from-sage-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+            <i class="fas fa-book-medical text-white text-lg"></i>
+          </div>
           <div>
-            <h1 class="text-2xl font-bold">MedDigest</h1>
-            <p class="text-sm opacity-80">Daily Med-Bio Insight</p>
+            <h1 class="text-xl font-serif font-semibold text-navy-800 tracking-tight">MedDigest</h1>
+            <p class="text-xs text-sage-600 font-medium tracking-wide">Daily Med-Bio Insight</p>
           </div>
         </div>
         <nav class="flex items-center space-x-4">
           ${user ? `
-            <div class="flex items-center space-x-3">
-              <span class="text-sm">${user.nickname}님</span>
-              <span class="px-2 py-1 rounded text-xs ${user.subscription_tier === 'pro' ? 'bg-orange-500' : user.subscription_tier === 'basic' ? 'bg-blue-500' : 'bg-gray-500'}">${user.subscription_tier.toUpperCase()}</span>
-              <button onclick="logout()" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-sm transition">로그아웃</button>
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                <span class="text-sm font-medium text-navy-800">${user.nickname}님</span>
+                <span class="ml-2 px-2.5 py-1 rounded-full text-xs font-medium ${user.subscription_tier === 'pro' ? 'tier-badge-pro' : user.subscription_tier === 'basic' ? 'tier-badge-basic' : 'bg-gray-100 text-gray-600'}">${user.subscription_tier.toUpperCase()}</span>
+              </div>
+              <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition">로그아웃</button>
             </div>
           ` : `
-            <a href="/api/auth/kakao" class="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition">
+            <a href="/api/auth/kakao" class="flex items-center space-x-2 px-5 py-2.5 bg-[#FEE500] hover:bg-[#FDD835] text-[#3C1E1E] rounded-xl transition shadow-sm hover:shadow">
               <img src="https://developers.kakao.com/assets/img/about/logos/kakao/kakao_login_btn_kakao_symbol.png" alt="Kakao" class="w-5 h-5">
-              <span class="font-medium">카카오 로그인</span>
+              <span class="font-medium text-sm">카카오 로그인</span>
             </a>
           `}
         </nav>
@@ -465,79 +588,145 @@ app.get('/', (c) => {
   </header>
 
   <!-- Hero Section -->
-  <section class="gradient-bg text-white py-12">
-    <div class="max-w-6xl mx-auto px-4 text-center">
-      <h2 class="text-3xl md:text-4xl font-bold mb-4">
-        논문 한 장으로 끝내는<br>Daily Med-Bio Insight
-      </h2>
-      <p class="text-lg opacity-90 mb-6">
-        바쁜 임상의, 연구자, 바이오 창업자를 위한<br>
-        매일 1편 논문을 "임상의 시각"으로 해설해 드립니다.
-      </p>
-      <div class="flex justify-center space-x-4">
-        <div class="text-center">
-          <div class="text-2xl font-bold">5분</div>
-          <div class="text-sm opacity-80">읽기 시간</div>
-        </div>
-        <div class="text-center border-l border-white/30 pl-4">
-          <div class="text-2xl font-bold">매일</div>
-          <div class="text-sm opacity-80">새 콘텐츠</div>
-        </div>
-        <div class="text-center border-l border-white/30 pl-4">
-          <div class="text-2xl font-bold">100%</div>
-          <div class="text-sm opacity-80">프라이버시</div>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 elegant-gradient"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-sage-200/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+    <div class="absolute bottom-0 left-0 w-80 h-80 bg-primary-200/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+    
+    <div class="relative max-w-6xl mx-auto px-6 py-16 md:py-24">
+      <div class="max-w-3xl">
+        <p class="text-sage-600 font-medium text-sm tracking-widest uppercase mb-4">For Healthcare Professionals</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-semibold text-navy-800 leading-tight mb-6">
+          매일 한 편의 논문이<br>
+          <span class="text-primary-700">임상의 통찰</span>로 다가옵니다
+        </h2>
+        <p class="text-lg text-navy-700/80 leading-relaxed mb-8">
+          바쁜 임상의, 연구자, 바이오 창업자를 위해<br class="hidden md:block">
+          엄선된 Med-Bio 논문을 전문가 시각으로 해설해 드립니다.
+        </p>
+        
+        <div class="flex flex-wrap gap-8 mb-8">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
+              <i class="fas fa-clock text-sage-600 text-lg"></i>
+            </div>
+            <div>
+              <div class="text-2xl font-serif font-semibold text-navy-800">5분</div>
+              <div class="text-sm text-sage-600">읽기 시간</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
+              <i class="fas fa-calendar-check text-sage-600 text-lg"></i>
+            </div>
+            <div>
+              <div class="text-2xl font-serif font-semibold text-navy-800">매일</div>
+              <div class="text-sm text-sage-600">새 콘텐츠</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
+              <i class="fas fa-shield-alt text-sage-600 text-lg"></i>
+            </div>
+            <div>
+              <div class="text-2xl font-serif font-semibold text-navy-800">100%</div>
+              <div class="text-sm text-sage-600">로컬 AI</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Topic Filter -->
-  <section class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-4 py-4">
-      <div class="flex items-center space-x-4 overflow-x-auto">
-        <span class="text-gray-500 text-sm whitespace-nowrap">주제:</span>
-        <button onclick="filterTopic('')" class="topic-btn px-4 py-2 rounded-full text-sm font-medium bg-primary text-white" data-topic="">전체</button>
-        <button onclick="filterTopic('심혈관')" class="topic-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 hover:bg-gray-200" data-topic="심혈관">심혈관</button>
-        <button onclick="filterTopic('내분비')" class="topic-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 hover:bg-gray-200" data-topic="내분비">내분비</button>
-        <button onclick="filterTopic('노화')" class="topic-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 hover:bg-gray-200" data-topic="노화">노화</button>
-        <button onclick="filterTopic('당뇨')" class="topic-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 hover:bg-gray-200" data-topic="당뇨">당뇨</button>
+  <section class="bg-white border-y border-primary-100">
+    <div class="max-w-6xl mx-auto px-6 py-5">
+      <div class="flex items-center space-x-3 overflow-x-auto pb-1">
+        <span class="text-navy-700/60 text-sm font-medium whitespace-nowrap flex items-center">
+          <i class="fas fa-filter mr-2 text-xs"></i>주제 필터
+        </span>
+        <div class="h-6 w-px bg-primary-200"></div>
+        <button onclick="filterTopic('')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium active" data-topic="">
+          <i class="fas fa-th-large mr-1.5 text-xs"></i>전체
+        </button>
+        <button onclick="filterTopic('심혈관')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium text-navy-700" data-topic="심혈관">
+          <i class="fas fa-heartbeat mr-1.5 text-xs text-red-400"></i>심혈관
+        </button>
+        <button onclick="filterTopic('내분비')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium text-navy-700" data-topic="내분비">
+          <i class="fas fa-dna mr-1.5 text-xs text-purple-400"></i>내분비
+        </button>
+        <button onclick="filterTopic('노화')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium text-navy-700" data-topic="노화">
+          <i class="fas fa-hourglass-half mr-1.5 text-xs text-amber-500"></i>노화
+        </button>
+        <button onclick="filterTopic('당뇨')" class="topic-btn topic-filter px-5 py-2 rounded-full text-sm font-medium text-navy-700" data-topic="당뇨">
+          <i class="fas fa-tint mr-1.5 text-xs text-blue-400"></i>당뇨
+        </button>
       </div>
     </div>
   </section>
 
   <!-- Articles List -->
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <div id="articles-container" class="space-y-6">
-      <div class="text-center py-8">
-        <i class="fas fa-spinner fa-spin text-3xl text-primary"></i>
-        <p class="mt-2 text-gray-500">논문 요약을 불러오는 중...</p>
+  <main class="max-w-6xl mx-auto px-6 py-10">
+    <div class="mb-8">
+      <h3 class="font-serif text-2xl font-semibold text-navy-800 mb-2">최신 논문 인사이트</h3>
+      <p class="text-sage-600">전문가가 엄선한 Med-Bio 논문 요약</p>
+    </div>
+    
+    <div id="articles-container" class="grid gap-6">
+      <div class="text-center py-16">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-100 flex items-center justify-center">
+          <i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i>
+        </div>
+        <p class="text-navy-700/60 font-medium">논문 요약을 불러오는 중...</p>
       </div>
     </div>
   </main>
 
   <!-- Subscription CTA -->
   ${!user || user.subscription_tier === 'free' ? `
-  <section class="bg-gradient-to-r from-orange-500 to-red-500 text-white py-12">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-      <h3 class="text-2xl font-bold mb-4">Pro 멤버십으로 업그레이드</h3>
-      <p class="mb-6">AI 기반 논문 분석, 전문 콘텐츠, 프로젝트 관점 코멘트를 만나보세요.</p>
-      <div class="flex justify-center space-x-6">
-        <div class="bg-white/20 rounded-lg p-6">
-          <div class="text-sm mb-2">Basic</div>
-          <div class="text-3xl font-bold mb-2">₩19,000<span class="text-sm font-normal">/월</span></div>
-          <ul class="text-sm text-left space-y-1">
-            <li>✓ 주 3회 요약</li>
-            <li>✓ 주간 하이라이트</li>
+  <section class="relative overflow-hidden py-16 md:py-20">
+    <div class="absolute inset-0 warm-gradient opacity-95"></div>
+    <div class="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+    
+    <div class="relative max-w-5xl mx-auto px-6">
+      <div class="text-center mb-12">
+        <p class="text-white/70 font-medium text-sm tracking-widest uppercase mb-3">Premium Membership</p>
+        <h3 class="font-serif text-3xl md:text-4xl font-semibold text-white mb-4">더 깊은 인사이트를 원하신다면</h3>
+        <p class="text-white/80 text-lg max-w-2xl mx-auto">AI 기반 논문 분석과 전문가 코멘트로<br class="hidden md:block">연구의 핵심을 빠르게 파악하세요.</p>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+          <div class="text-white/70 text-sm font-medium mb-2">Basic</div>
+          <div class="flex items-baseline mb-4">
+            <span class="text-4xl font-serif font-bold text-white">₩19,000</span>
+            <span class="text-white/60 ml-2">/월</span>
+          </div>
+          <div class="divider-warm opacity-30 mb-4"></div>
+          <ul class="space-y-3 text-white/90">
+            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>주 3회 논문 요약</li>
+            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>주간 하이라이트 레터</li>
+            <li class="flex items-center"><i class="fas fa-check text-sage-300 mr-3 w-4"></i>북마크 기능</li>
           </ul>
+          <button class="w-full mt-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-xl transition">시작하기</button>
         </div>
-        <div class="bg-white rounded-lg p-6 text-gray-900">
-          <div class="text-sm text-orange-500 font-bold mb-2">Pro</div>
-          <div class="text-3xl font-bold mb-2">₩49,000<span class="text-sm font-normal">/월</span></div>
-          <ul class="text-sm text-left space-y-1">
-            <li>✓ 주 5회 요약</li>
-            <li>✓ AI 논문 분석</li>
-            <li>✓ 프로젝트 관점 코멘트</li>
+        
+        <div class="bg-white rounded-2xl p-8 shadow-xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-gradient-to-l from-primary-500 to-sage-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">추천</div>
+          <div class="text-primary-600 text-sm font-bold mb-2">Pro</div>
+          <div class="flex items-baseline mb-4">
+            <span class="text-4xl font-serif font-bold text-navy-800">₩49,000</span>
+            <span class="text-navy-700/60 ml-2">/월</span>
+          </div>
+          <div class="divider-warm mb-4"></div>
+          <ul class="space-y-3 text-navy-700">
+            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>주 5회 논문 요약</li>
+            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i><strong class="font-semibold">AI 논문 질의응답</strong></li>
+            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>프로젝트 관점 코멘트</li>
+            <li class="flex items-center"><i class="fas fa-check text-sage-600 mr-3 w-4"></i>전체 아카이브 접근</li>
           </ul>
+          <button class="w-full mt-6 py-3 btn-warm text-white font-medium rounded-xl shadow-lg">Pro 시작하기</button>
         </div>
       </div>
     </div>
@@ -545,23 +734,29 @@ app.get('/', (c) => {
   ` : ''}
 
   <!-- Footer -->
-  <footer class="bg-gray-900 text-white py-8">
-    <div class="max-w-6xl mx-auto px-4">
+  <footer class="bg-navy-800 text-white py-12">
+    <div class="max-w-6xl mx-auto px-6">
       <div class="flex flex-col md:flex-row justify-between items-center">
-        <div class="flex items-center space-x-2 mb-4 md:mb-0">
-          <i class="fas fa-flask"></i>
-          <span class="font-bold">MedDigest</span>
+        <div class="flex items-center space-x-3 mb-6 md:mb-0">
+          <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+            <i class="fas fa-book-medical text-sage-300"></i>
+          </div>
+          <div>
+            <span class="font-serif font-semibold text-lg">MedDigest</span>
+            <p class="text-xs text-white/50">Daily Med-Bio Insight</p>
+          </div>
         </div>
-        <div class="text-sm text-gray-400">
-          © 2026 MedDigest. 의료 전문가를 위한 논문 인사이트 서비스.
+        <div class="text-sm text-white/50 text-center md:text-right">
+          <p>© 2026 MedDigest. All rights reserved.</p>
+          <p class="mt-1">의료 전문가를 위한 논문 인사이트 서비스</p>
         </div>
       </div>
     </div>
   </footer>
 
   <!-- Article Modal -->
-  <div id="article-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+  <div id="article-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-cream-100 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-primary-200/30">
       <div id="article-modal-content"></div>
     </div>
   </div>
@@ -582,36 +777,67 @@ app.get('/', (c) => {
         const data = await res.json();
         
         if (data.articles.length === 0) {
-          container.innerHTML = '<div class="text-center py-12 text-gray-500"><i class="fas fa-inbox text-4xl mb-4"></i><p>아직 등록된 논문이 없습니다.</p></div>';
+          container.innerHTML = \`
+            <div class="text-center py-16">
+              <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-sage-100 flex items-center justify-center">
+                <i class="fas fa-inbox text-3xl text-sage-400"></i>
+              </div>
+              <p class="text-navy-700/60 font-medium">아직 등록된 논문이 없습니다.</p>
+            </div>
+          \`;
           return;
         }
         
         container.innerHTML = data.articles.map(article => \`
-          <article class="bg-white rounded-xl shadow-md p-6 card-hover cursor-pointer" onclick="openArticle('\${article.slug}')">
-            <div class="flex justify-between items-start mb-3">
-              <span class="px-3 py-1 rounded-full text-xs font-medium \${article.tier === 'pro' ? 'tier-badge-pro' : 'tier-badge-basic'}">
-                \${article.tier === 'pro' ? 'PRO' : 'BASIC'}
-              </span>
-              <span class="text-sm text-gray-400">\${article.published_at}</span>
+          <article class="bg-white rounded-2xl p-6 card-elegant cursor-pointer border border-primary-100/50" onclick="openArticle('\${article.slug}')">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex items-center space-x-3">
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide \${article.tier === 'pro' ? 'tier-badge-pro' : 'tier-badge-basic'}">
+                  \${article.tier === 'pro' ? 'PRO' : 'BASIC'}
+                </span>
+                <span class="flex items-center text-xs text-sage-600 font-medium">
+                  <i class="fas fa-tag mr-1.5 text-sage-400"></i>\${article.topic}
+                </span>
+              </div>
+              <span class="text-xs text-navy-700/40 font-medium">\${article.published_at}</span>
             </div>
-            <div class="flex items-center space-x-2 mb-2">
-              <span class="text-xs bg-gray-100 px-2 py-1 rounded">\${article.topic}</span>
-              <span class="text-xs text-gray-500">\${article.journal}</span>
+            
+            <div class="mb-3">
+              <span class="text-xs text-primary-600 font-medium tracking-wide">\${article.journal}</span>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-3">\${article.title}</h3>
-            <div class="space-y-2">
+            
+            <h3 class="font-serif text-xl font-semibold text-navy-800 mb-4 leading-relaxed">\${article.title}</h3>
+            
+            <div class="space-y-2.5 mb-4">
               \${article.key_messages.slice(0, 2).map((msg, i) => \`
-                <div class="flex items-start space-x-2">
-                  <span class="text-primary font-bold">\${i + 1}.</span>
-                  <span class="text-sm text-gray-600">\${msg}</span>
+                <div class="flex items-start space-x-3">
+                  <span class="w-6 h-6 bg-gradient-to-br from-sage-400 to-sage-500 text-white rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">\${i + 1}</span>
+                  <span class="text-sm text-navy-700/80 leading-relaxed">\${msg}</span>
                 </div>
               \`).join('')}
             </div>
-            <div class="mt-4 text-primary text-sm font-medium">자세히 보기 →</div>
+            
+            <div class="flex items-center justify-between pt-4 border-t border-primary-100">
+              <div class="flex items-center space-x-2 text-xs text-sage-500">
+                <i class="fas fa-book-open"></i>
+                <span>5분 읽기</span>
+              </div>
+              <span class="text-primary-600 text-sm font-medium flex items-center group-hover:text-primary-700">
+                자세히 보기 <i class="fas fa-arrow-right ml-2 text-xs"></i>
+              </span>
+            </div>
           </article>
         \`).join('');
       } catch (e) {
-        container.innerHTML = '<div class="text-center py-12 text-red-500"><i class="fas fa-exclamation-circle text-4xl mb-4"></i><p>데이터를 불러오는데 실패했습니다.</p></div>';
+        container.innerHTML = \`
+          <div class="text-center py-16">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-red-50 flex items-center justify-center">
+              <i class="fas fa-exclamation-circle text-3xl text-red-400"></i>
+            </div>
+            <p class="text-navy-700/60 font-medium">데이터를 불러오는데 실패했습니다.</p>
+            <button onclick="loadArticles()" class="mt-4 px-4 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium">다시 시도</button>
+          </div>
+        \`;
       }
     }
 
@@ -620,11 +846,11 @@ app.get('/', (c) => {
       currentTopic = topic;
       document.querySelectorAll('.topic-btn').forEach(btn => {
         if (btn.dataset.topic === topic) {
-          btn.classList.remove('bg-gray-100');
-          btn.classList.add('bg-primary', 'text-white');
+          btn.classList.add('active');
+          btn.classList.remove('text-navy-700');
         } else {
-          btn.classList.remove('bg-primary', 'text-white');
-          btn.classList.add('bg-gray-100');
+          btn.classList.remove('active');
+          btn.classList.add('text-navy-700');
         }
       });
       loadArticles(topic);
@@ -637,7 +863,13 @@ app.get('/', (c) => {
       
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      content.innerHTML = '<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-3xl text-primary"></i></div>';
+      content.innerHTML = \`
+        <div class="p-12 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-100 flex items-center justify-center">
+            <i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i>
+          </div>
+        </div>
+      \`;
       
       try {
         const res = await fetch('/api/articles/' + slug);
@@ -646,18 +878,20 @@ app.get('/', (c) => {
         if (res.status === 403) {
           content.innerHTML = \`
             <div class="p-8">
-              <div class="text-center mb-6">
-                <i class="fas fa-lock text-5xl text-orange-500 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">\${data.preview.title}</h3>
-                <p class="text-gray-500">이 콘텐츠는 Pro 멤버십 전용입니다.</p>
+              <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary-100 to-sage-100 flex items-center justify-center">
+                  <i class="fas fa-lock text-3xl text-primary-600"></i>
+                </div>
+                <h3 class="font-serif text-xl font-semibold text-navy-800 mb-3">\${data.preview.title}</h3>
+                <p class="text-navy-700/60">이 콘텐츠는 Pro 멤버십 전용입니다.</p>
               </div>
               <div class="text-center">
-                <button class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition">
-                  Pro 업그레이드
+                <button class="px-8 py-3.5 btn-warm text-white rounded-xl font-medium shadow-lg">
+                  <i class="fas fa-crown mr-2"></i>Pro 업그레이드
                 </button>
               </div>
-              <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-xl"></i>
+              <button onclick="closeModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-navy-800/5 hover:bg-navy-800/10 flex items-center justify-center text-navy-700/50 hover:text-navy-700 transition">
+                <i class="fas fa-times"></i>
               </button>
             </div>
           \`;
@@ -669,127 +903,140 @@ app.get('/', (c) => {
         currentArticleData = article;
         content.innerHTML = \`
           <div class="relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10">
-              <i class="fas fa-times text-xl"></i>
+            <button onclick="closeModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white/80 hover:text-white transition z-10">
+              <i class="fas fa-times"></i>
             </button>
             
-            <div class="gradient-bg text-white p-6 rounded-t-2xl">
-              <div class="flex items-center space-x-2 mb-2">
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-white/20">\${article.tier === 'pro' ? 'PRO' : 'BASIC'}</span>
-                <span class="text-sm opacity-80">\${article.journal}</span>
+            <div class="warm-gradient text-white p-8 rounded-t-2xl">
+              <div class="flex items-center space-x-3 mb-4">
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-sm">\${article.tier === 'pro' ? 'PRO' : 'BASIC'}</span>
+                <span class="text-sm text-white/80">\${article.journal}</span>
               </div>
-              <h2 class="text-xl font-bold mb-2">\${article.title}</h2>
-              <div class="flex items-center space-x-4 text-sm opacity-80">
-                <span><i class="fas fa-tag mr-1"></i>\${article.topic}</span>
-                <span><i class="fas fa-calendar mr-1"></i>\${article.published_at}</span>
-                \${article.doi ? \`<span><i class="fas fa-link mr-1"></i>DOI: \${article.doi}</span>\` : ''}
+              <h2 class="font-serif text-2xl font-semibold mb-4 leading-relaxed">\${article.title}</h2>
+              <div class="flex flex-wrap items-center gap-4 text-sm text-white/70">
+                <span class="flex items-center"><i class="fas fa-tag mr-2"></i>\${article.topic}</span>
+                <span class="flex items-center"><i class="fas fa-calendar mr-2"></i>\${article.published_at}</span>
+                \${article.doi ? \`<span class="flex items-center"><i class="fas fa-external-link-alt mr-2"></i>DOI: \${article.doi}</span>\` : ''}
               </div>
             </div>
             
-            <div class="p-6">
+            <div class="p-8">
               <!-- Key Messages -->
-              <section class="mb-6">
-                <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                  <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>핵심 메시지
+              <section class="mb-8">
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
+                  <span class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-lightbulb text-amber-600"></i>
+                  </span>
+                  핵심 메시지
                 </h3>
                 <div class="space-y-3">
                   \${article.key_messages.map((msg, i) => \`
-                    <div class="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                      <span class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">\${i + 1}</span>
-                      <span class="text-gray-700">\${msg}</span>
+                    <div class="flex items-start space-x-4 p-4 bg-gradient-to-r from-sage-50 to-cream-200 rounded-xl border border-sage-100">
+                      <span class="w-7 h-7 bg-gradient-to-br from-sage-500 to-sage-600 text-white rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0">\${i + 1}</span>
+                      <span class="text-navy-700 leading-relaxed">\${msg}</span>
                     </div>
                   \`).join('')}
                 </div>
               </section>
               
               <!-- Study Design -->
-              <section class="mb-6">
-                <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                  <i class="fas fa-microscope text-green-500 mr-2"></i>Study Design
+              <section class="mb-8">
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
+                  <span class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-microscope text-emerald-600"></i>
+                  </span>
+                  연구 설계
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   \${article.study_n ? \`
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                      <div class="text-sm text-gray-500 mb-1">N</div>
-                      <div class="text-xl font-bold text-gray-900">\${article.study_n.toLocaleString()}명</div>
+                    <div class="p-5 bg-white rounded-xl border border-primary-100 shadow-sm">
+                      <div class="text-xs text-sage-600 font-medium mb-1 uppercase tracking-wide">Sample Size</div>
+                      <div class="text-2xl font-serif font-bold text-navy-800">\${article.study_n.toLocaleString()}<span class="text-base font-normal text-navy-700/60 ml-1">명</span></div>
                     </div>
                   \` : ''}
                   \${article.study_endpoint ? \`
-                    <div class="p-4 bg-gray-50 rounded-lg md:col-span-2">
-                      <div class="text-sm text-gray-500 mb-1">Endpoint</div>
-                      <div class="text-sm text-gray-700">\${article.study_endpoint}</div>
+                    <div class="p-5 bg-white rounded-xl border border-primary-100 shadow-sm md:col-span-2">
+                      <div class="text-xs text-sage-600 font-medium mb-1 uppercase tracking-wide">Primary Endpoint</div>
+                      <div class="text-sm text-navy-700 leading-relaxed">\${article.study_endpoint}</div>
                     </div>
                   \` : ''}
                 </div>
                 \${article.study_limitations ? \`
-                  <div class="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                    <div class="text-sm font-medium text-yellow-800 mb-1">한계점</div>
-                    <div class="text-sm text-yellow-700">\${article.study_limitations}</div>
+                  <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl">
+                    <div class="text-xs font-semibold text-amber-700 mb-1 uppercase tracking-wide">Limitations</div>
+                    <div class="text-sm text-amber-800">\${article.study_limitations}</div>
                   </div>
                 \` : ''}
               </section>
               
               <!-- Clinical Insight -->
-              <section class="mb-6">
-                <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                  <i class="fas fa-stethoscope text-red-500 mr-2"></i>임상/비즈니스 관점
+              <section class="mb-8">
+                <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
+                  <span class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-stethoscope text-rose-600"></i>
+                  </span>
+                  임상 · 비즈니스 인사이트
                 </h3>
-                <div class="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-100">
-                  <p class="text-gray-700 leading-relaxed">\${article.clinical_insight}</p>
+                <div class="relative p-6 bg-gradient-to-br from-cream-200 via-white to-sage-50 rounded-xl border border-primary-100">
+                  <span class="quote-mark absolute top-2 left-4 text-primary-300">"</span>
+                  <p class="text-navy-700 leading-relaxed pl-8 pr-4">\${article.clinical_insight}</p>
                 </div>
               </section>
               
               <!-- AI Chat (Pro only) -->
               \${userSubscription === 'pro' ? \`
-                <section class="border-t pt-6">
-                  <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                    <i class="fas fa-robot text-purple-500 mr-2"></i>AI에게 질문하기
-                    <span class="ml-2 px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded">PRO</span>
-                    <span class="ml-2 px-2 py-1 bg-green-100 text-green-600 text-xs rounded">WebGPU</span>
+                <section class="border-t border-primary-100 pt-8">
+                  <h3 class="font-serif text-lg font-semibold text-navy-800 mb-4 flex items-center">
+                    <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                      <i class="fas fa-robot text-purple-600"></i>
+                    </span>
+                    AI에게 질문하기
+                    <span class="ml-3 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">PRO</span>
+                    <span class="ml-2 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">WebGPU</span>
                   </h3>
-                  <div class="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-100">
-                    <div class="flex items-center justify-between mb-3">
-                      <p class="text-sm text-gray-600">이 논문에 대해 궁금한 점을 물어보세요.</p>
-                      <div class="flex items-center space-x-2 text-xs">
-                        <span class="flex items-center text-gray-500">
-                          <i class="fas fa-shield-alt text-green-500 mr-1"></i>100% 로컬 처리
+                  <div class="p-6 bg-gradient-to-br from-purple-50 via-cream-100 to-blue-50 rounded-xl border border-purple-100">
+                    <div class="flex items-center justify-between mb-4">
+                      <p class="text-sm text-navy-700/70">이 논문에 대해 궁금한 점을 물어보세요.</p>
+                      <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center text-sage-600 bg-white px-2.5 py-1 rounded-full shadow-sm">
+                          <i class="fas fa-shield-alt text-emerald-500 mr-1.5"></i>100% 로컬
                         </span>
-                        <span class="flex items-center text-gray-500">
-                          <i class="fas fa-bolt text-yellow-500 mr-1"></i>WebGPU 가속
+                        <span class="flex items-center text-sage-600 bg-white px-2.5 py-1 rounded-full shadow-sm">
+                          <i class="fas fa-bolt text-amber-500 mr-1.5"></i>WebGPU
                         </span>
                       </div>
                     </div>
                     
                     <!-- 빠른 질문 버튼 -->
-                    <div class="flex flex-wrap gap-2 mb-3">
-                      <button onclick="document.getElementById('ai-question').value='이 연구의 주요 한계점은 무엇인가요?'; askAI('\${article.slug}')" class="px-3 py-1 bg-white/80 hover:bg-white text-purple-600 text-xs rounded-full border border-purple-200 transition">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>한계점
+                    <div class="flex flex-wrap gap-2 mb-4">
+                      <button onclick="document.getElementById('ai-question').value='이 연구의 주요 한계점은 무엇인가요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                        <i class="fas fa-exclamation-triangle mr-1.5 text-amber-500"></i>한계점
                       </button>
-                      <button onclick="document.getElementById('ai-question').value='NNT(Number Needed to Treat)가 어떻게 되나요?'; askAI('\${article.slug}')" class="px-3 py-1 bg-white/80 hover:bg-white text-purple-600 text-xs rounded-full border border-purple-200 transition">
-                        <i class="fas fa-calculator mr-1"></i>NNT
+                      <button onclick="document.getElementById('ai-question').value='NNT(Number Needed to Treat)가 어떻게 되나요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                        <i class="fas fa-calculator mr-1.5 text-blue-500"></i>NNT
                       </button>
-                      <button onclick="document.getElementById('ai-question').value='실제 임상에서 어떻게 적용할 수 있나요?'; askAI('\${article.slug}')" class="px-3 py-1 bg-white/80 hover:bg-white text-purple-600 text-xs rounded-full border border-purple-200 transition">
-                        <i class="fas fa-stethoscope mr-1"></i>임상 적용
+                      <button onclick="document.getElementById('ai-question').value='실제 임상에서 어떻게 적용할 수 있나요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                        <i class="fas fa-stethoscope mr-1.5 text-rose-500"></i>임상 적용
                       </button>
-                      <button onclick="document.getElementById('ai-question').value='이 약물의 부작용 프로파일은 어떤가요?'; askAI('\${article.slug}')" class="px-3 py-1 bg-white/80 hover:bg-white text-purple-600 text-xs rounded-full border border-purple-200 transition">
-                        <i class="fas fa-pills mr-1"></i>부작용
+                      <button onclick="document.getElementById('ai-question').value='이 약물의 부작용 프로파일은 어떤가요?'; askAI('\${article.slug}')" class="px-4 py-2 bg-white hover:bg-purple-50 text-navy-700 text-xs rounded-full border border-purple-200 hover:border-purple-300 transition shadow-sm">
+                        <i class="fas fa-pills mr-1.5 text-purple-500"></i>부작용
                       </button>
                     </div>
                     
-                    <div class="flex space-x-2">
+                    <div class="flex space-x-3">
                       <input type="text" id="ai-question" 
-                        class="flex-1 px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white" 
+                        class="flex-1 px-5 py-3.5 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white text-navy-800 placeholder-navy-400" 
                         placeholder="예: 이 연구의 NNT는 어떻게 되나요?"
                         onkeypress="if(event.key === 'Enter') askAI('\${article.slug}')">
-                      <button onclick="askAI('\${article.slug}')" class="px-5 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl transition shadow-lg hover:shadow-xl">
+                      <button onclick="askAI('\${article.slug}')" class="px-6 py-3.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition shadow-lg hover:shadow-xl">
                         <i class="fas fa-paper-plane"></i>
                       </button>
                     </div>
                     <div id="ai-response" class="mt-4 hidden"></div>
                     
-                    <div class="mt-3 text-xs text-gray-400 flex items-center">
-                      <i class="fas fa-info-circle mr-1"></i>
-                      Transformers.js v4 + Qwen2.5-0.5B 모델 사용 | 첫 로딩시 약 400MB 다운로드
+                    <div class="mt-4 pt-4 border-t border-purple-100 text-xs text-navy-700/50 flex items-center">
+                      <i class="fas fa-microchip mr-2"></i>
+                      Transformers.js v4 + Qwen2.5-0.5B | 첫 로딩시 약 400MB 다운로드
                     </div>
                   </div>
                 </section>
@@ -798,7 +1045,14 @@ app.get('/', (c) => {
           </div>
         \`;
       } catch (e) {
-        content.innerHTML = '<div class="p-8 text-center text-red-500"><i class="fas fa-exclamation-circle text-4xl mb-4"></i><p>데이터를 불러오는데 실패했습니다.</p></div>';
+        content.innerHTML = \`
+          <div class="p-12 text-center">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-red-50 flex items-center justify-center">
+              <i class="fas fa-exclamation-circle text-3xl text-red-400"></i>
+            </div>
+            <p class="text-navy-700/60 font-medium">데이터를 불러오는데 실패했습니다.</p>
+          </div>
+        \`;
       }
     }
 
@@ -840,12 +1094,34 @@ app.get('/', (c) => {
       // WebGPU LLM이 준비되지 않은 경우
       if (!window.medLLM || !window.medLLM.isReady) {
         responseDiv.classList.remove('hidden');
-        responseDiv.innerHTML = '<div class="p-4 bg-purple-50 rounded-lg"><div class="text-center"><p class="text-sm text-gray-700 mb-3">AI 모델을 먼저 로딩해야 합니다.</p><button onclick="startAIModel()" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition"><i class="fas fa-play mr-2"></i>AI 시작하기</button><p class="text-xs text-gray-400 mt-3">WebGPU 기반으로 브라우저에서 직접 실행됩니다 (약 300-500MB 다운로드)</p></div></div>';
+        responseDiv.innerHTML = \`
+          <div class="p-5 bg-white rounded-xl border border-purple-100 shadow-sm">
+            <div class="text-center">
+              <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
+                <i class="fas fa-microchip text-2xl text-purple-500"></i>
+              </div>
+              <p class="text-sm text-navy-700 mb-4">AI 모델을 먼저 로딩해야 합니다.</p>
+              <button onclick="startAIModel()" class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition shadow-md">
+                <i class="fas fa-play mr-2"></i>AI 시작하기
+              </button>
+              <p class="text-xs text-navy-700/50 mt-4">WebGPU 기반 브라우저 실행 (약 300-500MB)</p>
+            </div>
+          </div>
+        \`;
         return;
       }
       
       responseDiv.classList.remove('hidden');
-      responseDiv.innerHTML = '<div class="p-4 bg-purple-50 rounded-lg"><i class="fas fa-spinner fa-spin mr-2"></i>AI가 분석 중입니다...</div>';
+      responseDiv.innerHTML = \`
+        <div class="p-5 bg-white rounded-xl border border-purple-100 shadow-sm">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+              <i class="fas fa-spinner fa-spin text-purple-500"></i>
+            </div>
+            <span class="text-sm text-navy-700">AI가 분석 중입니다...</span>
+          </div>
+        </div>
+      \`;
       
       try {
         // 현재 논문 컨텍스트로 응답 생성
@@ -861,9 +1137,36 @@ app.get('/', (c) => {
           temperature: 0.7
         });
         
-        responseDiv.innerHTML = '<div class="p-4 bg-purple-50 rounded-lg"><div class="flex items-start space-x-3"><i class="fas fa-robot text-purple-500 mt-1 flex-shrink-0"></i><div><p class="text-sm text-gray-700 whitespace-pre-wrap">' + response + '</p><p class="text-xs text-gray-400 mt-2">Transformers.js v4 + WebGPU 기반 로컬 AI</p></div></div></div>';
+        responseDiv.innerHTML = \`
+          <div class="p-5 bg-white rounded-xl border border-purple-100 shadow-sm">
+            <div class="flex items-start space-x-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-robot text-white"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-navy-700 leading-relaxed whitespace-pre-wrap">\${response}</p>
+                <p class="text-xs text-navy-700/40 mt-3 pt-3 border-t border-purple-50">
+                  <i class="fas fa-microchip mr-1"></i>Transformers.js v4 + WebGPU 로컬 AI
+                </p>
+              </div>
+            </div>
+          </div>
+        \`;
       } catch (error) {
-        responseDiv.innerHTML = '<div class="p-4 bg-red-50 rounded-lg"><div class="flex items-start space-x-3"><i class="fas fa-exclamation-circle text-red-500 mt-1"></i><div><p class="text-sm text-red-700">응답 생성 실패: ' + error.message + '</p><button onclick="askAI(\\'' + slug + '\\')" class="mt-2 text-xs text-red-500 hover:text-red-700 underline">다시 시도</button></div></div></div>';
+        responseDiv.innerHTML = \`
+          <div class="p-5 bg-red-50 rounded-xl border border-red-100">
+            <div class="flex items-start space-x-3">
+              <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+              </div>
+              <div>
+                <p class="text-sm text-red-700 font-medium">응답 생성 실패</p>
+                <p class="text-xs text-red-600 mt-1">\${error.message}</p>
+                <button onclick="askAI('\${slug}')" class="mt-3 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition">다시 시도</button>
+              </div>
+            </div>
+          </div>
+        \`;
       }
     }
     
@@ -871,7 +1174,19 @@ app.get('/', (c) => {
     async function startAIModel() {
       const responseDiv = document.getElementById('ai-response');
       
-      responseDiv.innerHTML = '<div class="p-4 bg-purple-50 rounded-lg"><div class="text-center"><div class="mb-3"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i></div><p class="text-sm text-gray-700" id="ai-load-status">WebGPU 초기화 중...</p><div class="mt-3 w-full bg-gray-200 rounded-full h-2"><div id="ai-load-progress" class="bg-purple-500 h-2 rounded-full transition-all" style="width: 0%"></div></div></div></div>';
+      responseDiv.innerHTML = \`
+        <div class="p-5 bg-white rounded-xl border border-purple-100 shadow-sm">
+          <div class="text-center">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
+              <i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i>
+            </div>
+            <p class="text-sm text-navy-700 font-medium mb-2" id="ai-load-status">WebGPU 초기화 중...</p>
+            <div class="w-full max-w-xs mx-auto bg-purple-100 rounded-full h-2 overflow-hidden">
+              <div id="ai-load-progress" class="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      \`;
       
       // 프로그레스 콜백 설정
       window.medLLM.on('onProgress', function(data) {
@@ -882,11 +1197,37 @@ app.get('/', (c) => {
       });
       
       window.medLLM.on('onReady', function(info) {
-        responseDiv.innerHTML = '<div class="p-4 bg-green-50 rounded-lg"><div class="flex items-center space-x-3"><i class="fas fa-check-circle text-green-500 text-xl"></i><div><p class="text-sm font-medium text-green-700">' + info.model + ' 모델 준비 완료!</p><p class="text-xs text-green-600">' + info.device.toUpperCase() + ' 모드로 실행 중</p></div></div><p class="mt-3 text-sm text-gray-600">이제 위 입력창에 질문을 입력하고 전송해 주세요.</p></div>';
+        responseDiv.innerHTML = \`
+          <div class="p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100 shadow-sm">
+            <div class="flex items-center space-x-4">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-check text-white text-lg"></i>
+              </div>
+              <div>
+                <p class="font-medium text-emerald-800">\${info.model} 준비 완료!</p>
+                <p class="text-xs text-emerald-600 mt-0.5">\${info.device.toUpperCase()} 모드로 실행 중</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-navy-700/70 pl-16">위 입력창에 질문을 입력하고 전송해 주세요.</p>
+          </div>
+        \`;
       });
       
       window.medLLM.on('onError', function(error) {
-        responseDiv.innerHTML = '<div class="p-4 bg-red-50 rounded-lg"><div class="flex items-start space-x-3"><i class="fas fa-exclamation-circle text-red-500 mt-1"></i><div><p class="text-sm text-red-700">모델 로딩 실패: ' + error.message + '</p><button onclick="startAIModel()" class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">다시 시도</button></div></div></div>';
+        responseDiv.innerHTML = \`
+          <div class="p-5 bg-red-50 rounded-xl border border-red-100">
+            <div class="flex items-start space-x-3">
+              <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-500"></i>
+              </div>
+              <div>
+                <p class="font-medium text-red-700">모델 로딩 실패</p>
+                <p class="text-xs text-red-600 mt-1">\${error.message}</p>
+                <button onclick="startAIModel()" class="mt-3 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition">다시 시도</button>
+              </div>
+            </div>
+          </div>
+        \`;
       });
       
       try {
